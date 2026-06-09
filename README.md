@@ -9,6 +9,7 @@ A small Windows 11 desktop clock widget built with WPF.
 - Drag the widget with the left mouse button.
 - Right-click menu for always-on-top, seconds, position lock, settings, and exit.
 - Settings window for background shade, opacity, border, weekday/date, precise padding, size, and clock font weight.
+- Optional Pomodoro mode with configurable focus/break duration, sound, notification, and on-widget controls.
 - `Fit window to content` mode makes padding values match the visible distance to the widget edge.
 - Named presets can save and restore visual settings plus seconds/date visibility, like `small` or `big`.
 - Defaults button for restoring visual settings.
@@ -47,6 +48,8 @@ dist\ClockWidget.exe
 ## Usage
 
 - Drag to place the clock anywhere.
-- Double-click the clock to toggle always-on-top.
+- Use the right-click menu to toggle always-on-top.
+- Ctrl-click the widget to switch clock/Pomodoro without opening the menu.
+- Use the Pomodoro buttons on the widget to start, pause, or reset the timer.
 - Right-click for settings.
 - Enable `Lock position` after placing it.

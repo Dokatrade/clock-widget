@@ -22,6 +22,13 @@ public sealed class WidgetSettings
     public double DateFontSize { get; set; } = 13;
     public bool LockPosition { get; set; }
     public bool StartWithWindows { get; set; }
+    public bool PomodoroEnabled { get; set; } = true;
+    public int PomodoroFocusMinutes { get; set; } = 25;
+    public int PomodoroBreakMinutes { get; set; } = 5;
+    public bool PomodoroAutoStartBreak { get; set; } = true;
+    public bool PomodoroReturnToClockAfterBreak { get; set; } = true;
+    public bool PomodoroPlaySound { get; set; } = true;
+    public PomodoroSound PomodoroSound { get; set; } = PomodoroSound.FreesoundsNotification;
     public List<WidgetPreset> Presets { get; set; } = [];
 
     public void ResetAppearanceToDefaults()
@@ -67,6 +74,13 @@ public sealed class WidgetSettings
             DateFontSize = DateFontSize,
             LockPosition = LockPosition,
             StartWithWindows = StartWithWindows,
+            PomodoroEnabled = PomodoroEnabled,
+            PomodoroFocusMinutes = PomodoroFocusMinutes,
+            PomodoroBreakMinutes = PomodoroBreakMinutes,
+            PomodoroAutoStartBreak = PomodoroAutoStartBreak,
+            PomodoroReturnToClockAfterBreak = PomodoroReturnToClockAfterBreak,
+            PomodoroPlaySound = PomodoroPlaySound,
+            PomodoroSound = PomodoroSound,
             Presets = (Presets ?? []).Select(preset => preset.Clone()).ToList()
         };
     }

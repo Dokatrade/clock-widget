@@ -13,5 +13,8 @@
 
   <ItemGroup>
     <Resource Include="Assets\AppIcon.ico" />
+    <Content Include="Assets\Sounds\*.mp3">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

@@ -4,6 +4,18 @@ namespace ClockWidget;
 
 public partial class SettingsWindow : Window
 {
+    private static readonly IReadOnlyList<PomodoroSoundOption> PomodoroSoundOptions =
+    [
+        new("Notification chime", PomodoroSound.FreesoundsNotification),
+        new("Harp", PomodoroSound.Harp),
+        new("Ladder", PomodoroSound.Ladder),
+        new("Music box", PomodoroSound.MusicBox),
+        new("Message notification", PomodoroSound.MessageNotification),
+        new("New notification 015", PomodoroSound.NewNotification015),
+        new("New notification 036", PomodoroSound.NewNotification036),
+        new("New notification 059", PomodoroSound.NewNotification059)
+    ];
+
     public event EventHandler<WidgetSettings>? SettingsApplied;
 
     public WidgetSettings Settings { get; private set; }
@@ -13,6 +25,9 @@ public partial class SettingsWindow : Window
     public SettingsWindow(WidgetSettings settings)
     {
         InitializeComponent();
+        PomodoroSoundComboBox.ItemsSource = PomodoroSoundOptions;
+        PomodoroSoundComboBox.DisplayMemberPath = nameof(PomodoroSoundOption.Name);
+        PomodoroSoundComboBox.SelectedValuePath = nameof(PomodoroSoundOption.Sound);
         Settings = settings.Clone();
         LoadSettingsToControls();
     }
@@ -36,6 +51,13 @@ public partial class SettingsWindow : Window
         ClockFontSizeSlider.Value = Settings.ClockFontSize;
         ClockFontWeightSlider.Value = Settings.ClockFontWeight;
         StartWithWindowsCheckBox.IsChecked = Settings.StartWithWindows;
+        PomodoroEnabledCheckBox.IsChecked = Settings.PomodoroEnabled;
+        PomodoroFocusMinutesSlider.Value = Settings.PomodoroFocusMinutes;
+        PomodoroBreakMinutesSlider.Value = Settings.PomodoroBreakMinutes;
+        PomodoroAutoStartBreakCheckBox.IsChecked = Settings.PomodoroAutoStartBreak;
+        PomodoroReturnToClockCheckBox.IsChecked = Settings.PomodoroReturnToClockAfterBreak;
+        PomodoroPlaySoundCheckBox.IsChecked = Settings.PomodoroPlaySound;
+        PomodoroSoundComboBox.SelectedValue = Settings.PomodoroSound;
 
         UpdatePresetList();
         _isLoading = false;
@@ -59,6 +81,13 @@ public partial class SettingsWindow : Window
         Settings.ClockFontSize = Math.Round(ClockFontSizeSlider.Value);
         Settings.ClockFontWeight = (int)Math.Round(ClockFontWeightSlider.Value);
         Settings.StartWithWindows = StartWithWindowsCheckBox.IsChecked == true;
+        Settings.PomodoroEnabled = PomodoroEnabledCheckBox.IsChecked == true;
+        Settings.PomodoroFocusMinutes = (int)Math.Round(PomodoroFocusMinutesSlider.Value);
+        Settings.PomodoroBreakMinutes = (int)Math.Round(PomodoroBreakMinutesSlider.Value);
+        Settings.PomodoroAutoStartBreak = PomodoroAutoStartBreakCheckBox.IsChecked == true;
+        Settings.PomodoroReturnToClockAfterBreak = PomodoroReturnToClockCheckBox.IsChecked == true;
+        Settings.PomodoroPlaySound = PomodoroPlaySoundCheckBox.IsChecked == true;
+        Settings.PomodoroSound = GetSelectedPomodoroSound();
     }
 
     private void UpdateLabels()
@@ -73,6 +102,9 @@ public partial class SettingsWindow : Window
         HeightLabel.Text = $"Height: {HeightSlider.Value:0}px";
         ClockFontSizeLabel.Text = $"Clock font size: {ClockFontSizeSlider.Value:0}px";
         ClockFontWeightLabel.Text = $"Clock font weight: {GetFontWeightName(ClockFontWeightSlider.Value)}";
+        PomodoroFocusMinutesLabel.Text = $"Focus minutes: {PomodoroFocusMinutesSlider.Value:0}";
+        PomodoroBreakMinutesLabel.Text = $"Break minutes: {PomodoroBreakMinutesSlider.Value:0}";
+        UpdatePomodoroControlState();
         UpdateDateControlState();
         UpdateSizeControlState();
     }
@@ -116,6 +148,14 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private void PomodoroEnabledCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!_isLoading && IsLoaded)
+        {
+            UpdatePomodoroControlState();
+        }
+    }
+
     private void UpdateDateControlState()
     {
         var showDate = ShowDateCheckBox.IsChecked == true;
@@ -130,11 +170,37 @@ public partial class SettingsWindow : Window
         HeightSlider.IsEnabled = useManualSize;
     }
 
+    private void UpdatePomodoroControlState()
+    {
+        var enabled = PomodoroEnabledCheckBox.IsChecked == true;
+        PomodoroFocusMinutesSlider.IsEnabled = enabled;
+        PomodoroBreakMinutesSlider.IsEnabled = enabled;
+        PomodoroAutoStartBreakCheckBox.IsEnabled = enabled;
+        PomodoroReturnToClockCheckBox.IsEnabled = enabled;
+        PomodoroPlaySoundCheckBox.IsEnabled = enabled;
+        PomodoroSoundComboBox.IsEnabled = enabled;
+        PomodoroSoundPreviewButton.IsEnabled = enabled;
+    }
+
+    private void PomodoroSoundPreviewButton_Click(object sender, RoutedEventArgs e)
+    {
+        PomodoroBell.Play(GetSelectedPomodoroSound());
+    }
+
+    private PomodoroSound GetSelectedPomodoroSound()
+    {
+        return PomodoroSoundComboBox.SelectedValue is PomodoroSound sound
+            ? sound
+            : PomodoroSound.FreesoundsNotification;
+    }
+
     private void OkButton_Click(object sender, RoutedEventArgs e)
     {
         ApplyControlsToSettings();
         DialogResult = true;
     }
+
+    private sealed record PomodoroSoundOption(string Name, PomodoroSound Sound);
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
     {

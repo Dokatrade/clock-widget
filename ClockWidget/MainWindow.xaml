@@ -12,6 +12,61 @@
         ShowInTaskbar="False"
         Topmost="True"
         WindowStartupLocation="Manual">
+  <Window.Resources>
+    <Style x:Key="PomodoroControlButtonStyle"
+           TargetType="Button">
+      <Setter Property="Width"
+              Value="28" />
+      <Setter Property="Height"
+              Value="24" />
+      <Setter Property="Padding"
+              Value="0" />
+      <Setter Property="Foreground"
+              Value="#EAF8FAFC" />
+      <Setter Property="Background"
+              Value="#4A000000" />
+      <Setter Property="BorderBrush"
+              Value="#40FFFFFF" />
+      <Setter Property="BorderThickness"
+              Value="1" />
+      <Setter Property="FontFamily"
+              Value="Segoe UI Symbol, Segoe UI, Arial" />
+      <Setter Property="FontWeight"
+              Value="SemiBold" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="ButtonSurface"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="6">
+              <ContentPresenter HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver"
+                       Value="True">
+                <Setter TargetName="ButtonSurface"
+                        Property="Background"
+                        Value="#66000000" />
+                <Setter TargetName="ButtonSurface"
+                        Property="BorderBrush"
+                        Value="#7322D3EE" />
+              </Trigger>
+              <Trigger Property="IsPressed"
+                       Value="True">
+                <Setter TargetName="ButtonSurface"
+                        Property="Background"
+                        Value="#80000000" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
   <Border x:Name="Root"
           Padding="18,10"
           CornerRadius="8"
@@ -42,6 +97,17 @@
                   IsCheckable="True"
                   Click="LockPositionMenuItem_Click" />
         <Separator />
+        <MenuItem x:Name="PomodoroModeMenuItem"
+                  Header="Show Pomodoro"
+                  IsCheckable="True"
+                  Click="PomodoroModeMenuItem_Click" />
+        <MenuItem x:Name="PomodoroStartPauseMenuItem"
+                  Header="Start Pomodoro"
+                  Click="PomodoroStartPauseMenuItem_Click" />
+        <MenuItem x:Name="PomodoroResetMenuItem"
+                  Header="Reset Pomodoro"
+                  Click="PomodoroResetMenuItem_Click" />
+        <Separator />
         <MenuItem Header="Settings..."
                   Click="SettingsMenuItem_Click" />
         <Separator />
@@ -52,12 +118,61 @@
 
     <Grid HorizontalAlignment="Center"
           VerticalAlignment="Center">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
       <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
+      <StackPanel x:Name="PomodoroControls"
+                  Grid.Row="0"
+                  Grid.RowSpan="3"
+                  Grid.Column="0"
+                  Orientation="Vertical"
+                  VerticalAlignment="Center"
+                  Margin="0,0,12,0"
+                  Visibility="Collapsed">
+        <Button x:Name="PomodoroStartPauseButton"
+                Width="34"
+                Height="30"
+                Margin="0,0,0,6"
+                Content="▶"
+                FontSize="15"
+                Focusable="False"
+                Style="{StaticResource PomodoroControlButtonStyle}"
+                ToolTip="Start or pause Pomodoro"
+                Click="PomodoroStartPauseButton_Click" />
+        <Button x:Name="PomodoroResetButton"
+                Content="↺"
+                FontSize="14"
+                Focusable="False"
+                Style="{StaticResource PomodoroControlButtonStyle}"
+                ToolTip="Reset Pomodoro"
+                Click="PomodoroResetButton_Click" />
+      </StackPanel>
+
+      <Border x:Name="PomodoroProgressTrack"
+                 Grid.Row="0"
+                 Grid.Column="1"
+              Height="4"
+              Margin="2,0,2,5"
+              Background="#3AFFFFFF"
+              CornerRadius="2"
+              Visibility="Collapsed">
+        <Border x:Name="PomodoroProgressFill"
+                Width="0"
+                HorizontalAlignment="Left"
+                Background="#FF22D3EE"
+                CornerRadius="2" />
+      </Border>
+
       <TextBlock x:Name="TimeText"
+                 Grid.Row="1"
+                 Grid.Column="1"
                  FontFamily="Segoe UI Variable Display, Segoe UI, Arial"
                  FontSize="56"
                  FontWeight="SemiBold"
@@ -69,7 +184,8 @@
                  LineHeight="56" />
 
       <TextBlock x:Name="DateText"
-                 Grid.Row="1"
+                 Grid.Row="2"
+                 Grid.Column="1"
                  Margin="0,2,0,0"
                  FontFamily="Segoe UI Variable Text, Segoe UI, Arial"
                  FontSize="13"
