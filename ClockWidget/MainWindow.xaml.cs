@@ -1,50 +1,54 @@
-using System.Globalization;
-using System.IO;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using MediaColor = System.Windows.Media.Color;
+using WpfMessageBox = System.Windows.MessageBox;
 
 namespace ClockWidget;
 
 public partial class MainWindow : Window
 {
-    private static readonly string SettingsDirectory =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ClockWidget");
+    private static readonly SolidColorBrush ClockTextBrush = CreateFrozenBrush(MediaColor.FromRgb(248, 250, 252));
+    private static readonly SolidColorBrush DateTextBrush = CreateFrozenBrush(MediaColor.FromArgb(204, 248, 250, 252));
+    private static readonly SolidColorBrush PomodoroBreakTextBrush = CreateFrozenBrush(MediaColor.FromRgb(187, 247, 208));
+    private static readonly MediaColor PomodoroBreakProgressColor = MediaColor.FromRgb(34, 197, 94);
+    private static readonly SolidColorBrush PomodoroBreakProgressBrush = CreateFrozenBrush(PomodoroBreakProgressColor);
 
-    private static readonly string SettingsPath = Path.Combine(SettingsDirectory, "settings.json");
-
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    private readonly SettingsStore _settingsStore = new();
+    private readonly StartupSettingsService _startupSettingsService = new();
+    private readonly SettingsDialogController _settingsDialogController = new();
+    private readonly WidgetDisplayFormatter _displayFormatter = new();
+    private readonly DisplayTickScheduler _tickScheduler;
+    private readonly PomodoroSession _pomodoroSession = new();
     private WidgetSettings _settings = new();
-    private string? _lastSavedJson;
-    private WidgetDisplayMode _displayMode = WidgetDisplayMode.Clock;
-    private PomodoroPhase _pomodoroPhase = PomodoroPhase.Focus;
-    private TimeSpan _pomodoroRemaining = TimeSpan.Zero;
-    private DateTime _pomodoroEndsAt;
-    private bool _pomodoroRunning;
+    private TrayIconController? _trayIcon;
 
     public MainWindow()
     {
         InitializeComponent();
+        _tickScheduler = new DisplayTickScheduler(UpdateDisplayAndScheduleNextTick);
         Loaded += MainWindow_Loaded;
         Closing += (_, _) =>
         {
+            _tickScheduler.Stop();
+            _trayIcon?.Dispose();
             SaveSettings();
         };
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        _settings = LoadSettings();
-        _settings.StartWithWindows = ReadStartupSetting();
-        NormalizePomodoroSettings();
+        _settings = _settingsStore.Load();
+        _settings.StartWithWindows = _startupSettingsService.ReadEnabled();
+        _settings.Normalize();
         ResetPomodoroState(showClock: true);
         ApplySettings();
 
-        _timer.Tick += (_, _) => UpdateDisplay();
-        _timer.Start();
-        UpdateDisplay();
+        InitializeTrayIcon();
+        SizeChanged += (_, _) => ScheduleEnsureWindowOnScreen();
+        UpdateDisplayAndScheduleNextTick();
+        _tickScheduler.Start();
     }
 
     private void Root_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -66,6 +70,15 @@ public partial class MainWindow : Window
         }
         finally
         {
+            if (!WindowPlacementService.SnapToScreenEdges(
+                this,
+                _settings.Width,
+                _settings.Height,
+                _settings.SnapToScreenEdges))
+            {
+                EnsureWindowOnScreen();
+            }
+
             SaveSettings();
         }
     }
@@ -80,7 +93,7 @@ public partial class MainWindow : Window
     private void ShowSecondsMenuItem_Click(object sender, RoutedEventArgs e)
     {
         _settings.ShowSeconds = ShowSecondsMenuItem.IsChecked;
-        UpdateDisplay();
+        UpdateDisplayAndScheduleNextTick();
         SaveSettings();
     }
 
@@ -88,6 +101,11 @@ public partial class MainWindow : Window
     {
         _settings.LockPosition = LockPositionMenuItem.IsChecked;
         SaveSettings();
+    }
+
+    private void ResetPositionMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        ResetPosition();
     }
 
     private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
@@ -126,33 +144,22 @@ public partial class MainWindow : Window
     {
         _settings.Left = Left;
         _settings.Top = Top;
+        _settingsDialogController.Show(this, _settings, ApplyUpdatedSettings);
+    }
 
-        var settingsWindow = new SettingsWindow(_settings)
-        {
-            Owner = this
-        };
-
-        settingsWindow.SettingsApplied += (_, updatedSettings) =>
-        {
-            _settings = updatedSettings.Clone();
-            ApplyStartupSetting();
-            ApplySettings(reposition: false);
-            ApplyPomodoroSettings();
-            SaveSettings();
-        };
-
-        if (settingsWindow.ShowDialog() == true)
-        {
-            _settings = settingsWindow.Settings.Clone();
-            ApplyStartupSetting();
-            ApplySettings(reposition: false);
-            ApplyPomodoroSettings();
-            SaveSettings();
-        }
+    private void ApplyUpdatedSettings(WidgetSettings updatedSettings)
+    {
+        _settings = updatedSettings.Clone();
+        ApplyStartupSetting();
+        ApplySettings(reposition: false);
+        ApplyPomodoroSettings();
+        SaveSettings();
     }
 
     private void ApplySettings(bool reposition = true)
     {
+        _settings.Normalize();
+
         if (_settings.FitToContent)
         {
             SizeToContent = System.Windows.SizeToContent.WidthAndHeight;
@@ -171,21 +178,21 @@ public partial class MainWindow : Window
         UpdatePomodoroMenuState();
         ApplyAppearanceSettings();
 
-        if (!reposition)
+        if (reposition)
         {
-            return;
+            if (WindowPlacementService.IsOnScreen(_settings.Left, _settings.Top))
+            {
+                Left = _settings.Left;
+                Top = _settings.Top;
+            }
+            else
+            {
+                Left = SystemParameters.WorkArea.Right - Width - 32;
+                Top = SystemParameters.WorkArea.Top + 32;
+            }
         }
 
-        if (IsOnScreen(_settings.Left, _settings.Top))
-        {
-            Left = _settings.Left;
-            Top = _settings.Top;
-        }
-        else
-        {
-            Left = SystemParameters.WorkArea.Right - Width - 32;
-            Top = SystemParameters.WorkArea.Top + 32;
-        }
+        ScheduleEnsureWindowOnScreen();
     }
 
     private void ApplyAppearanceSettings()
@@ -196,7 +203,7 @@ public partial class MainWindow : Window
             _settings.PaddingHorizontal,
             _settings.PaddingBottom);
 
-        Root.Background = new SolidColorBrush(Color.FromArgb(
+        Root.Background = new SolidColorBrush(MediaColor.FromArgb(
             (byte)Math.Clamp((int)Math.Round(_settings.BackgroundOpacity * 255), 0, 255),
             _settings.BackgroundShade,
             _settings.BackgroundShade,
@@ -213,7 +220,7 @@ public partial class MainWindow : Window
 
     private void UpdateDisplay()
     {
-        var displayModeBeforeUpdate = _displayMode;
+        var displayModeBeforeUpdate = _pomodoroSession.DisplayMode;
         var right = Left + ActualWidth;
         var canPreserveRightEdge = IsLoaded
             && !double.IsNaN(Left)
@@ -222,7 +229,7 @@ public partial class MainWindow : Window
 
         UpdatePomodoroState();
 
-        if (_displayMode == WidgetDisplayMode.Pomodoro && _settings.PomodoroEnabled)
+        if (_pomodoroSession.IsPomodoroDisplayVisible(_settings))
         {
             UpdatePomodoroDisplay();
         }
@@ -233,14 +240,16 @@ public partial class MainWindow : Window
 
         UpdatePomodoroMenuState();
 
-        if (displayModeBeforeUpdate != _displayMode && canPreserveRightEdge)
+        if (displayModeBeforeUpdate != _pomodoroSession.DisplayMode && canPreserveRightEdge)
         {
-            Dispatcher.BeginInvoke(() =>
-            {
-                UpdateLayout();
-                Left = Math.Max(SystemParameters.WorkArea.Left + 12, right - ActualWidth);
-            }, DispatcherPriority.Loaded);
+            RestoreRightEdge(right);
         }
+    }
+
+    private void UpdateDisplayAndScheduleNextTick()
+    {
+        UpdateDisplay();
+        _tickScheduler.ScheduleNext(GetDisplayTickState());
     }
 
     private void UpdateDisplayPreservingRightEdge()
@@ -251,237 +260,139 @@ public partial class MainWindow : Window
             && !double.IsNaN(right)
             && ActualWidth > 0;
 
-        UpdateDisplay();
+        UpdateDisplayAndScheduleNextTick();
 
         if (!canPreserveRightEdge)
         {
             return;
         }
 
-        Dispatcher.BeginInvoke(() =>
-        {
-            UpdateLayout();
-            Left = Math.Max(SystemParameters.WorkArea.Left + 12, right - ActualWidth);
-        }, DispatcherPriority.Loaded);
+        RestoreRightEdge(right);
     }
 
     private void UpdateClockDisplay()
     {
-        var now = DateTime.Now;
+        var display = _displayFormatter.BuildClockDisplay(
+            DateTime.Now,
+            _settings,
+            _pomodoroSession.Controller,
+            GetFocusDuration(),
+            GetBreakDuration());
+
         PomodoroControls.Visibility = Visibility.Collapsed;
-        if (_settings.PomodoroEnabled && _pomodoroRunning)
+        ApplyPomodoroProgress(display.Progress);
+        TimeText.Text = display.TimeText;
+        TimeText.Foreground = ClockTextBrush;
+        DateText.Foreground = DateTextBrush;
+        DateText.Visibility = display.ShowDate ? Visibility.Visible : Visibility.Collapsed;
+        DateText.Text = display.DateText;
+    }
+
+    private void UpdatePomodoroDisplay()
+    {
+        var display = _displayFormatter.BuildPomodoroDisplay(
+            _pomodoroSession.Controller,
+            GetFocusDuration(),
+            GetBreakDuration());
+
+        PomodoroControls.Visibility = Visibility.Visible;
+        PomodoroStartPauseButton.Content = display.StartPauseText;
+        ApplyPomodoroProgress(display.Progress);
+        TimeText.Text = display.TimeText;
+        TimeText.Foreground = display.UseBreakTextColor
+            ? PomodoroBreakTextBrush
+            : ClockTextBrush;
+        DateText.Text = "";
+        DateText.Visibility = Visibility.Collapsed;
+    }
+
+    private void ApplyPomodoroProgress(PomodoroProgressModel progress)
+    {
+        if (progress.IsVisible)
         {
             PomodoroProgressTrack.Visibility = Visibility.Visible;
-            UpdatePomodoroProgress();
+            UpdatePomodoroProgress(progress);
         }
         else
         {
             PomodoroProgressTrack.Visibility = Visibility.Collapsed;
             PomodoroProgressFill.Width = 0;
         }
-
-        TimeText.Text = now.ToString(_settings.ShowSeconds ? "HH:mm:ss" : "HH:mm", CultureInfo.CurrentCulture);
-        TimeText.Foreground = new SolidColorBrush(Color.FromRgb(248, 250, 252));
-        DateText.Foreground = new SolidColorBrush(Color.FromArgb(204, 248, 250, 252));
-        DateText.Visibility = _settings.ShowDate ? Visibility.Visible : Visibility.Collapsed;
-
-        if (_settings.ShowDate)
-        {
-            DateText.Text = now.ToString(_settings.ShowWeekday ? "dddd, d MMMM yyyy" : "d MMMM yyyy", CultureInfo.CurrentCulture);
-        }
     }
 
-    private void UpdatePomodoroDisplay()
+    private void UpdatePomodoroProgress(PomodoroProgressModel progress)
     {
-        PomodoroControls.Visibility = Visibility.Visible;
-        PomodoroProgressTrack.Visibility = Visibility.Visible;
-        PomodoroStartPauseButton.Content = _pomodoroRunning ? "Ⅱ" : "▶";
-        UpdatePomodoroProgress();
-        TimeText.Text = FormatDuration(_pomodoroRemaining);
-        TimeText.Foreground = _pomodoroPhase == PomodoroPhase.Focus
-            ? new SolidColorBrush(Color.FromRgb(248, 250, 252))
-            : new SolidColorBrush(Color.FromRgb(187, 247, 208));
-        DateText.Foreground = _pomodoroRunning
-            ? new SolidColorBrush(Color.FromArgb(220, 34, 211, 238))
-            : new SolidColorBrush(Color.FromArgb(220, 251, 191, 36));
-        var statusText = GetPomodoroStatusText();
-        DateText.Text = statusText;
-        DateText.Visibility = string.IsNullOrEmpty(statusText) ? Visibility.Collapsed : Visibility.Visible;
-    }
-
-    private void UpdatePomodoroProgress()
-    {
-        var duration = _pomodoroPhase == PomodoroPhase.Focus ? GetFocusDuration() : GetBreakDuration();
-        var durationSeconds = duration.TotalSeconds;
         var trackWidth = PomodoroProgressTrack.ActualWidth;
-        if (durationSeconds <= 0 || trackWidth <= 0)
+        if (trackWidth <= 0)
         {
             PomodoroProgressFill.Width = 0;
             return;
         }
 
-        var remainingSeconds = Math.Clamp(_pomodoroRemaining.TotalSeconds, 0, durationSeconds);
-        var progress = 1 - remainingSeconds / durationSeconds;
-        PomodoroProgressFill.Width = Math.Clamp(trackWidth * progress, 0, trackWidth);
-        PomodoroProgressFill.Background = new SolidColorBrush(GetPomodoroProgressColor(progress, _pomodoroPhase));
+        PomodoroProgressFill.Width = Math.Clamp(trackWidth * progress.Ratio, 0, trackWidth);
+        PomodoroProgressFill.Background = progress.Color == PomodoroBreakProgressColor
+            ? PomodoroBreakProgressBrush
+            : CreateFrozenBrush(progress.Color);
     }
 
-    private static Color GetPomodoroProgressColor(double progress, PomodoroPhase phase)
+    private static SolidColorBrush CreateFrozenBrush(MediaColor color)
     {
-        var green = Color.FromRgb(34, 197, 94);
-        if (phase == PomodoroPhase.Break)
-        {
-            return green;
-        }
-
-        var clampedProgress = Math.Clamp(progress, 0, 1);
-        var blue = Color.FromRgb(34, 211, 238);
-        var red = Color.FromRgb(248, 64, 64);
-
-        if (clampedProgress < 0.5)
-        {
-            return LerpColor(green, blue, clampedProgress * 2);
-        }
-
-        return LerpColor(blue, red, (clampedProgress - 0.5) * 2);
-    }
-
-    private static Color LerpColor(Color start, Color end, double amount)
-    {
-        return Color.FromRgb(
-            Lerp(start.R, end.R, amount),
-            Lerp(start.G, end.G, amount),
-            Lerp(start.B, end.B, amount));
-    }
-
-    private static byte Lerp(byte start, byte end, double amount)
-    {
-        return (byte)Math.Round(start + (end - start) * amount);
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
     }
 
     private void UpdatePomodoroState()
     {
-        if (!_pomodoroRunning)
+        var completion = _pomodoroSession.Update(GetBreakDuration(), _settings.PomodoroAutoStartBreak);
+        if (completion == PomodoroPhaseCompletion.None)
         {
             return;
         }
 
-        var remaining = _pomodoroEndsAt - DateTime.Now;
-        if (remaining > TimeSpan.Zero)
-        {
-            _pomodoroRemaining = remaining;
-            return;
-        }
-
-        _pomodoroRemaining = TimeSpan.Zero;
-        CompletePomodoroPhase();
+        CompletePomodoroPhase(completion);
     }
 
     private void TogglePomodoroDisplay()
     {
-        if (!_settings.PomodoroEnabled)
+        if (!_pomodoroSession.ToggleDisplay(_settings, GetFocusDuration(), GetBreakDuration()))
         {
             return;
         }
 
-        EnsurePomodoroRemaining();
-        _displayMode = _displayMode == WidgetDisplayMode.Pomodoro
-            ? WidgetDisplayMode.Clock
-            : WidgetDisplayMode.Pomodoro;
         UpdateDisplayPreservingRightEdge();
     }
 
     private void TogglePomodoroStartPause()
     {
-        if (!_settings.PomodoroEnabled)
+        if (!_pomodoroSession.ToggleStartPause(_settings, GetFocusDuration(), GetBreakDuration()))
         {
             return;
-        }
-
-        EnsurePomodoroRemaining();
-        _displayMode = WidgetDisplayMode.Pomodoro;
-
-        if (_pomodoroRunning)
-        {
-            _pomodoroRemaining = _pomodoroEndsAt - DateTime.Now;
-            if (_pomodoroRemaining < TimeSpan.Zero)
-            {
-                _pomodoroRemaining = TimeSpan.Zero;
-            }
-
-            _pomodoroRunning = false;
-        }
-        else
-        {
-            _pomodoroEndsAt = DateTime.Now + _pomodoroRemaining;
-            _pomodoroRunning = true;
         }
 
         UpdateDisplayPreservingRightEdge();
     }
 
-    private void CompletePomodoroPhase()
+    private void CompletePomodoroPhase(PomodoroPhaseCompletion completion)
     {
-        if (_pomodoroPhase == PomodoroPhase.Focus)
-        {
-            PlayPomodoroCompletionSound();
-            _pomodoroPhase = PomodoroPhase.Break;
-            _pomodoroRemaining = GetBreakDuration();
-            _pomodoroRunning = _settings.PomodoroAutoStartBreak;
-            if (_pomodoroRunning)
-            {
-                _pomodoroEndsAt = DateTime.Now + _pomodoroRemaining;
-            }
-
-            _displayMode = WidgetDisplayMode.Pomodoro;
-            return;
-        }
-
         PlayPomodoroCompletionSound();
-        ResetPomodoroState(showClock: _settings.PomodoroReturnToClockAfterBreak);
+
+        _pomodoroSession.CompletePhase(
+            completion,
+            GetFocusDuration(),
+            _settings.PomodoroReturnToClockAfterBreak);
     }
 
     private void ResetPomodoroState(bool showClock)
     {
-        _pomodoroPhase = PomodoroPhase.Focus;
-        _pomodoroRemaining = GetFocusDuration();
-        _pomodoroRunning = false;
-        _displayMode = showClock ? WidgetDisplayMode.Clock : WidgetDisplayMode.Pomodoro;
+        _pomodoroSession.Reset(GetFocusDuration(), showClock);
     }
 
     private void ApplyPomodoroSettings()
     {
-        NormalizePomodoroSettings();
-
-        if (!_settings.PomodoroEnabled)
-        {
-            ResetPomodoroState(showClock: true);
-            UpdateDisplay();
-            return;
-        }
-
-        if (!_pomodoroRunning && _pomodoroPhase == PomodoroPhase.Focus)
-        {
-            _pomodoroRemaining = GetFocusDuration();
-        }
-
-        UpdateDisplay();
-    }
-
-    private void NormalizePomodoroSettings()
-    {
-        _settings.PomodoroFocusMinutes = Math.Clamp(_settings.PomodoroFocusMinutes, 1, 120);
-        _settings.PomodoroBreakMinutes = Math.Clamp(_settings.PomodoroBreakMinutes, 1, 60);
-    }
-
-    private void EnsurePomodoroRemaining()
-    {
-        if (_pomodoroRemaining <= TimeSpan.Zero)
-        {
-            _pomodoroRemaining = _pomodoroPhase == PomodoroPhase.Focus
-                ? GetFocusDuration()
-                : GetBreakDuration();
-        }
+        _settings.Normalize();
+        _pomodoroSession.ApplySettings(_settings, GetFocusDuration());
+        UpdateDisplayAndScheduleNextTick();
     }
 
     private TimeSpan GetFocusDuration()
@@ -492,11 +403,6 @@ public partial class MainWindow : Window
     private TimeSpan GetBreakDuration()
     {
         return TimeSpan.FromMinutes(_settings.PomodoroBreakMinutes);
-    }
-
-    private string GetPomodoroStatusText()
-    {
-        return "";
     }
 
     private void PlayPomodoroCompletionSound()
@@ -512,102 +418,174 @@ public partial class MainWindow : Window
         PomodoroModeMenuItem.IsEnabled = _settings.PomodoroEnabled;
         PomodoroStartPauseMenuItem.IsEnabled = _settings.PomodoroEnabled;
         PomodoroResetMenuItem.IsEnabled = _settings.PomodoroEnabled;
-        PomodoroModeMenuItem.IsChecked = _displayMode == WidgetDisplayMode.Pomodoro;
+        PomodoroModeMenuItem.IsChecked = _pomodoroSession.IsPomodoroDisplayVisible(_settings);
         PomodoroStartPauseMenuItem.Header = GetPomodoroStartPauseHeader();
     }
 
     private string GetPomodoroStartPauseHeader()
     {
-        if (_pomodoroRunning)
-        {
-            return "Pause Pomodoro";
-        }
-
-        var phase = _pomodoroPhase == PomodoroPhase.Focus ? "Pomodoro" : "Break";
-        var fullDuration = _pomodoroPhase == PomodoroPhase.Focus ? GetFocusDuration() : GetBreakDuration();
-        return _pomodoroRemaining < fullDuration ? $"Resume {phase}" : $"Start {phase}";
+        return _pomodoroSession.GetStartPauseHeader(GetFocusDuration(), GetBreakDuration());
     }
 
-    private static string FormatDuration(TimeSpan duration)
+    private DisplayTickState GetDisplayTickState()
     {
-        var totalSeconds = Math.Max(0, (int)Math.Ceiling(duration.TotalSeconds));
-        var normalized = TimeSpan.FromSeconds(totalSeconds);
-        return normalized.TotalHours >= 1
-            ? normalized.ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture)
-            : normalized.ToString(@"mm\:ss", CultureInfo.InvariantCulture);
+        return _pomodoroSession.GetTickState(_settings);
     }
 
-    private static bool IsOnScreen(double left, double top)
+    private void InitializeTrayIcon()
     {
-        const double margin = 40;
-        return left >= SystemParameters.VirtualScreenLeft - margin
-            && top >= SystemParameters.VirtualScreenTop - margin
-            && left <= SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - margin
-            && top <= SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - margin;
+        if (_trayIcon is not null)
+        {
+            return;
+        }
+
+        _trayIcon = new TrayIconController(
+            Dispatcher,
+            new TrayIconActions(
+                GetState: GetTrayIconState,
+                ToggleWidgetVisibility: ToggleWidgetVisibilityWithoutSaving,
+                OpenSettings: OpenSettingsFromTray,
+                ToggleAlwaysOnTop: ToggleAlwaysOnTopFromTray,
+                ToggleLockPosition: ToggleLockPositionFromTray,
+                ResetPosition: ResetPositionFromTray,
+                TogglePomodoroDisplay: TogglePomodoroDisplay,
+                TogglePomodoroStartPause: TogglePomodoroStartPause,
+                ResetPomodoro: ResetPomodoroFromTray,
+                Exit: Close));
+        UpdateTrayMenuState();
     }
 
-    private WidgetSettings LoadSettings()
+    private void UpdateTrayMenuState()
     {
-        try
-        {
-            if (!File.Exists(SettingsPath))
-            {
-                return new WidgetSettings();
-            }
-
-            _lastSavedJson = File.ReadAllText(SettingsPath);
-            return JsonSerializer.Deserialize<WidgetSettings>(_lastSavedJson) ?? new WidgetSettings();
-        }
-        catch
-        {
-            _lastSavedJson = null;
-            return new WidgetSettings();
-        }
+        _trayIcon?.UpdateState(GetTrayIconState());
     }
 
-    private static bool ReadStartupSetting()
+    private TrayIconState GetTrayIconState()
     {
-        try
+        return new TrayIconState(
+            IsWidgetVisible: IsVisible,
+            AlwaysOnTop: _settings.AlwaysOnTop,
+            LockPosition: _settings.LockPosition,
+            PomodoroEnabled: _settings.PomodoroEnabled,
+            IsPomodoroVisible: _pomodoroSession.IsPomodoroDisplayVisible(_settings),
+            PomodoroStartPauseText: GetPomodoroStartPauseHeader());
+    }
+
+    private void ToggleWidgetVisibilityWithoutSaving()
+    {
+        if (IsVisible)
         {
-            return StartupManager.IsEnabled();
+            Hide();
         }
-        catch
+        else
         {
-            return false;
+            ShowWidgetWithoutSaving();
         }
+
+        UpdateTrayMenuState();
+    }
+
+    private void ShowWidgetWithoutSaving()
+    {
+        Show();
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        EnsureWindowOnScreen();
+        Activate();
+    }
+
+    private void OpenSettingsFromTray()
+    {
+        ShowWidgetWithoutSaving();
+        SettingsMenuItem_Click(this, new RoutedEventArgs());
+    }
+
+    private void ResetPomodoroFromTray()
+    {
+        ResetPomodoroState(showClock: false);
+        UpdateDisplayPreservingRightEdge();
+    }
+
+    private void ResetPositionFromTray()
+    {
+        ShowWidgetWithoutSaving();
+        ResetPosition();
+    }
+
+    private void ToggleAlwaysOnTopFromTray()
+    {
+        _settings.AlwaysOnTop = !_settings.AlwaysOnTop;
+        Topmost = _settings.AlwaysOnTop;
+        AlwaysOnTopMenuItem.IsChecked = _settings.AlwaysOnTop;
+        SaveSettings();
+        UpdateTrayMenuState();
+    }
+
+    private void ToggleLockPositionFromTray()
+    {
+        _settings.LockPosition = !_settings.LockPosition;
+        LockPositionMenuItem.IsChecked = _settings.LockPosition;
+        SaveSettings();
+        UpdateTrayMenuState();
+    }
+
+    private void RestoreRightEdge(double right)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            WindowPlacementService.RestoreRightEdge(this, right, _settings.Width, _settings.Height);
+        }, DispatcherPriority.Loaded);
+    }
+
+    private void ScheduleEnsureWindowOnScreen()
+    {
+        if (!IsLoaded)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            UpdateLayout();
+            EnsureWindowOnScreen();
+        }, DispatcherPriority.Loaded);
+    }
+
+    private bool EnsureWindowOnScreen()
+    {
+        return WindowPlacementService.EnsureOnScreen(this, _settings.Width, _settings.Height);
+    }
+
+    private void ResetPosition()
+    {
+        WindowPlacementService.MoveToDefaultPosition(this, _settings.Width, _settings.Height);
+        SaveSettings();
     }
 
     private void ApplyStartupSetting()
     {
-        try
+        var result = _startupSettingsService.ApplyEnabled(_settings.StartWithWindows);
+        if (result.Succeeded)
         {
-            StartupManager.SetEnabled(_settings.StartWithWindows);
+            return;
         }
-        catch (Exception ex)
-        {
-            _settings.StartWithWindows = ReadStartupSetting();
-            MessageBox.Show(
-                this,
-                $"Could not update Windows startup setting.\n\n{ex.Message}",
-                "Clock Settings",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-        }
+
+        _settings.StartWithWindows = result.CurrentEnabled;
+        WpfMessageBox.Show(
+            this,
+            $"Could not update Windows startup setting.\n\n{result.ErrorMessage}",
+            "Clock Settings",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
     }
 
     private void SaveSettings()
     {
         _settings.Left = Left;
         _settings.Top = Top;
-
-        var json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
-        if (json == _lastSavedJson)
-        {
-            return;
-        }
-
-        Directory.CreateDirectory(SettingsDirectory);
-        File.WriteAllText(SettingsPath, json);
-        _lastSavedJson = json;
+        _settingsStore.Save(_settings);
     }
 }

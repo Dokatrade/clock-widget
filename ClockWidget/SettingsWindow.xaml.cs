@@ -1,4 +1,5 @@
 using System.Windows;
+using WpfMessageBox = System.Windows.MessageBox;
 
 namespace ClockWidget;
 
@@ -29,6 +30,7 @@ public partial class SettingsWindow : Window
         PomodoroSoundComboBox.DisplayMemberPath = nameof(PomodoroSoundOption.Name);
         PomodoroSoundComboBox.SelectedValuePath = nameof(PomodoroSoundOption.Sound);
         Settings = settings.Clone();
+        Settings.Normalize();
         LoadSettingsToControls();
     }
 
@@ -51,6 +53,7 @@ public partial class SettingsWindow : Window
         ClockFontSizeSlider.Value = Settings.ClockFontSize;
         ClockFontWeightSlider.Value = Settings.ClockFontWeight;
         StartWithWindowsCheckBox.IsChecked = Settings.StartWithWindows;
+        SnapToScreenEdgesCheckBox.IsChecked = Settings.SnapToScreenEdges;
         PomodoroEnabledCheckBox.IsChecked = Settings.PomodoroEnabled;
         PomodoroFocusMinutesSlider.Value = Settings.PomodoroFocusMinutes;
         PomodoroBreakMinutesSlider.Value = Settings.PomodoroBreakMinutes;
@@ -81,6 +84,7 @@ public partial class SettingsWindow : Window
         Settings.ClockFontSize = Math.Round(ClockFontSizeSlider.Value);
         Settings.ClockFontWeight = (int)Math.Round(ClockFontWeightSlider.Value);
         Settings.StartWithWindows = StartWithWindowsCheckBox.IsChecked == true;
+        Settings.SnapToScreenEdges = SnapToScreenEdgesCheckBox.IsChecked == true;
         Settings.PomodoroEnabled = PomodoroEnabledCheckBox.IsChecked == true;
         Settings.PomodoroFocusMinutes = (int)Math.Round(PomodoroFocusMinutesSlider.Value);
         Settings.PomodoroBreakMinutes = (int)Math.Round(PomodoroBreakMinutesSlider.Value);
@@ -88,6 +92,7 @@ public partial class SettingsWindow : Window
         Settings.PomodoroReturnToClockAfterBreak = PomodoroReturnToClockCheckBox.IsChecked == true;
         Settings.PomodoroPlaySound = PomodoroPlaySoundCheckBox.IsChecked == true;
         Settings.PomodoroSound = GetSelectedPomodoroSound();
+        Settings.Normalize();
     }
 
     private void UpdateLabels()
@@ -234,7 +239,7 @@ public partial class SettingsWindow : Window
         var presetName = PresetNameTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(presetName))
         {
-            MessageBox.Show(this, "Enter preset name first.", "Clock Settings", MessageBoxButton.OK, MessageBoxImage.Information);
+            WpfMessageBox.Show(this, "Enter preset name first.", "Clock Settings", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -252,7 +257,6 @@ public partial class SettingsWindow : Window
         Settings.Presets = Settings.Presets.OrderBy(preset => preset.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
         UpdatePresetList(presetName);
-        SettingsApplied?.Invoke(this, Settings.Clone());
     }
 
     private void LoadPresetButton_Click(object sender, RoutedEventArgs e)
@@ -260,7 +264,7 @@ public partial class SettingsWindow : Window
         var preset = GetSelectedPreset();
         if (preset is null)
         {
-            MessageBox.Show(this, "Select a preset to load.", "Clock Settings", MessageBoxButton.OK, MessageBoxImage.Information);
+            WpfMessageBox.Show(this, "Select a preset to load.", "Clock Settings", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -268,7 +272,6 @@ public partial class SettingsWindow : Window
         LoadSettingsToControls();
         PresetComboBox.SelectedItem = preset.Name;
         PresetNameTextBox.Text = preset.Name;
-        SettingsApplied?.Invoke(this, Settings.Clone());
     }
 
     private void DeletePresetButton_Click(object sender, RoutedEventArgs e)
@@ -276,14 +279,13 @@ public partial class SettingsWindow : Window
         var preset = GetSelectedPreset();
         if (preset is null)
         {
-            MessageBox.Show(this, "Select a preset to delete.", "Clock Settings", MessageBoxButton.OK, MessageBoxImage.Information);
+            WpfMessageBox.Show(this, "Select a preset to delete.", "Clock Settings", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         Settings.Presets.Remove(preset);
         PresetNameTextBox.Clear();
         UpdatePresetList();
-        SettingsApplied?.Invoke(this, Settings.Clone());
     }
 
     private WidgetPreset? GetSelectedPreset()

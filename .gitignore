@@ -97,6 +97,7 @@ htmlcov/
 build/
 dist/
 *.manifest
+!ClockWidget/app.manifest
 *.spec
 
 # --- Java / Kotlin (Maven/Gradle) ---

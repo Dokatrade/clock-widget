@@ -96,6 +96,8 @@
                   Header="Lock position"
                   IsCheckable="True"
                   Click="LockPositionMenuItem_Click" />
+        <MenuItem Header="Reset position"
+                  Click="ResetPositionMenuItem_Click" />
         <Separator />
         <MenuItem x:Name="PomodoroModeMenuItem"
                   Header="Show Pomodoro"
@@ -186,7 +188,7 @@
       <TextBlock x:Name="DateText"
                  Grid.Row="2"
                  Grid.Column="1"
-                 Margin="0,2,0,0"
+                 Margin="0,-2,0,0"
                  FontFamily="Segoe UI Variable Text, Segoe UI, Arial"
                  FontSize="13"
                  FontWeight="Medium"
