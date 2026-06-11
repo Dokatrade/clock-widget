@@ -81,6 +81,11 @@ Tray нужен для управления виджетом без taskbar-кн
 - tray icon/menu -> `TrayIconController`
 - window placement/snap -> `WindowPlacementService`
 - Pomodoro state transitions -> `PomodoroController`
+- startup setting read/apply -> `StartupSettingsService`
+- display tick scheduling -> `DisplayTickScheduler`
+- display formatting/progress model -> `WidgetDisplayFormatter`
+- settings dialog creation/apply dispatch -> `SettingsDialogController`
+- Pomodoro display/session commands -> `PomodoroSession`
 
 ## 2026-06-10 — Pomodoro Controller Extraction
 Решили вынести фазу, остаток времени, старт/паузу/сброс и завершение Pomodoro-фаз в `PomodoroController`, оставив `MainWindow` владельцем отображения, звуков и меню.
@@ -142,14 +147,56 @@ Tray нужен для управления виджетом без taskbar-кн
 Причина:
 Это быстрый способ вернуть виджет в видимую предсказуемую область после смены мониторов, масштаба или ручных перемещений.
 
-## 2026-06-10 — Settings Preset Cancel Semantics
+## 2026-06-11 — Settings Preset Cancel Semantics
 Решили, что `Save`, `Load` и `Delete` preset в окне настроек меняют только черновик диалога. В живой виджет и файл настроек изменения попадают только через `Apply` или `OK`.
 
 Причина:
 `Cancel` должен оставаться настоящей отменой. Прежнее мгновенное применение preset-действий делало поведение неожиданным и могло сохранять изменения, которые пользователь ожидал отменить.
 
-## 2026-06-10 — Pomodoro Session Extraction
+## 2026-06-11 — Pomodoro Session Extraction
 Решили вынести Pomodoro display mode, команды переключения/старта/сброса, completion transitions, текст пункта меню и tick-state в `PomodoroSession`, оставив `MainWindow` владельцем WPF-контролов, звука и сохранения.
 
 Причина:
 Это продолжает уменьшать ответственность `MainWindow.xaml.cs`, не меняет минимальный Pomodoro UI и оставляет новую логику тестируемой без запуска WPF.
+
+## 2026-06-11 — Built-In Visual Presets
+Решили добавить встроенные визуальные пресеты `Compact`, `Large`, `Minimal`, `Pomodoro` через `WidgetSettings.CreateBuiltInPresets()`. Они отображаются в Settings рядом с пользовательскими пресетами, но не сохраняются в `settings.json` и не удаляются; пользовательский preset с тем же именем работает как override.
+
+Причина:
+Нужны готовые варианты внешнего вида без раздувания пользовательского файла настроек и без неявного восстановления удалённых built-in записей.
+
+## 2026-06-11 — Tabbed Settings Window
+Решили перегруппировать окно настроек во вкладки `Presets`, `Appearance`, `Pomodoro`, `System` без новых production dependencies.
+
+Причина:
+Окно настроек стало длинным после Pomodoro, presets и системных опций; вкладки снижают прокрутку и отделяют разные сценарии настройки.
+
+## 2026-06-11 — Settings Preset Catalog
+Решили вынести правила списка, поиска, сохранения и удаления presets в `SettingsPresetCatalog`. UI теперь различает built-in, custom и custom override, не даёт удалить чистый built-in preset, а удаление custom override сбрасывает его к built-in.
+
+Причина:
+Preset-логика стала отдельным поведением с edge cases. Её лучше держать вне WPF code-behind и покрывать unit-тестами.
+
+## 2026-06-11 — Settings Draft Dirty State
+Решили включать `Apply` только когда текущий draft настроек отличается от последнего применённого состояния. Сравнение делается в памяти через тот же нормализованный JSON, который использует `SettingsStore`.
+
+Причина:
+Пользователь должен видеть, есть ли реальные неприменённые изменения, при этом это не должно создавать фоновых записей на диск.
+
+## 2026-06-11 — Settings Import/Export
+Решили добавить ручные `Import` / `Export` в Settings. Import меняет только draft диалога до `Apply` или `OK`; Export пишет только выбранный пользователем файл.
+
+Причина:
+Это даёт переносимость и безопасные эксперименты с настройками без фоновых disk writes и без новых dependencies.
+
+## 2026-06-11 — Second Launch Activation
+Решили, что второй запуск приложения должен сигналить первому процессу и выводить существующий виджет вперёд, а не просто молча завершаться.
+
+Причина:
+Single-instance guard уже предотвращал дубликаты, но пользовательский сценарий повторного запуска ожидает увидеть существующее окно.
+
+## 2026-06-11 — Window Placement Geometry
+Решили вынести чистую математику clamp/snap/default-position в `WindowPlacementGeometry`, оставив WPF/WinForms screen API в `WindowPlacementService`.
+
+Причина:
+Так позиционирование можно тестировать без запуска UI и без зависимости от текущих мониторов среды.

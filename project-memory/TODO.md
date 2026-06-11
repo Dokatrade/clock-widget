@@ -1,24 +1,19 @@
 # TODO
 
 ## Now
-- [ ] Confirm new files are included when committing: `ClockWidget/SettingsStore.cs`, `ClockWidget/SettingsDialogController.cs`, `ClockWidget/TrayIconController.cs`, `ClockWidget/WindowPlacementService.cs`, `ClockWidget/PomodoroController.cs`, `ClockWidget/StartupSettingsService.cs`, `ClockWidget/DisplayTickScheduler.cs`, `ClockWidget/WidgetDisplayFormatter.cs`, `ClockWidget/IClock.cs`, `ClockWidget/Properties/AssemblyInfo.cs`, `ClockWidget.Tests/`, `ClockWidget/app.manifest`.
+- [ ] Include new files when committing: `ClockWidget/SettingsPresetCatalog.cs`, `ClockWidget/WindowPlacementGeometry.cs`, `ClockWidget.Tests/SettingsPresetCatalogTests.cs`, `ClockWidget.Tests/WindowPlacementGeometryTests.cs`.
+- [ ] Verify latest Settings changes on Windows: tabs render correctly, built-in/custom/custom override labels are clear, built-in presets load, custom overrides can be reset, `Apply` enables/disables correctly, and Apply/OK/Cancel semantics still hold.
+- [ ] Verify user-triggered Settings import/export on Windows.
+- [ ] Verify launching a second app instance brings the existing widget forward instead of silently exiting.
 
 ## Next
-- [ ] Verify Settings preset `Save` / `Load` / `Delete` only commit after `Apply` or `OK`, and `Cancel` leaves the live widget unchanged.
-- [ ] Verify tray Show/Hide does not rewrite `%APPDATA%\ClockWidget\settings.json`.
-- [ ] Verify tray menu items: Settings, Always on top, Lock position, Pomodoro show/start/reset, Exit.
-- [ ] Verify single-instance behavior by launching the app twice.
-- [ ] Verify adaptive timer visually: seconds on/off and Pomodoro countdown.
-- [ ] Verify Pomodoro behavior after controller extraction: start, pause, resume, reset, focus-to-break, break-to-clock.
-- [ ] Verify snap-to-edge with `Snap to screen edges` enabled and disabled.
+- [ ] Run `dotnet test .\ClockWidget.sln` on Windows after the latest Settings/preset/import/export/activation changes.
 - [ ] Keep `project-memory/HANDOFF.md`, `project-memory/TODO.md`, `project-memory/docs/decisions.md`, and `project-memory/docs/chat-notes.md` updated after substantial implementation.
 
 ## Later
-- [ ] Run `dotnet test .\ClockWidget.sln` on Windows.
 - [ ] Consider extending tests for other window-independent services.
-- [ ] Consider shrinking `MainWindow.xaml.cs` around tray action adapters.
-- [ ] Consider built-in visual presets.
-- [ ] Consider better Settings UI grouping/tabs if the window grows further.
+- [ ] Continue shrinking `MainWindow.xaml.cs` if another clear responsibility boundary appears.
+- [ ] Consider extracting Settings draft/dirty-state logic further if `SettingsWindow.xaml.cs` keeps growing.
 - [ ] Pomodoro notifications: user declined for now.
 - [ ] New production dependencies: require explicit user approval.
 - [ ] Consider adding tests if project structure becomes more service-oriented.
@@ -43,6 +38,18 @@
 - [x] Added Reset position command to context menu and tray menu.
 - [x] Changed preset actions in Settings to stay in the dialog draft until `Apply` or `OK`.
 - [x] Extracted Pomodoro display/command session logic into `PomodoroSession` and added tests.
+- [x] User reported previous Windows verification completed: tests/publish/manual checks from the prior checkpoint.
+- [x] Confirmed `git ls-files --others --exclude-standard` is empty; old new-file commit checklist is no longer needed.
+- [x] Added built-in visual presets: `Compact`, `Large`, `Minimal`, `Pomodoro`.
+- [x] Added `WidgetSettings` tests for preset apply semantics and built-in preset freshness/normalization.
+- [x] Reorganized Settings window into tabs: Presets, Appearance, Pomodoro, System.
+- [x] Reduced duplicated `MainWindow` context-menu/tray toggle and Pomodoro reset code.
+- [x] Extracted preset list/lookup/save/delete rules into `SettingsPresetCatalog`.
+- [x] Added tests for built-in/custom/custom override preset behavior.
+- [x] Added precise Settings `Apply` dirty-state based on in-memory settings JSON comparison.
+- [x] Added user-triggered Settings import/export.
+- [x] Added second-launch activation of the existing app instance.
+- [x] Extracted testable `WindowPlacementGeometry` and added clamp/snap/default-position tests.
 - [x] Fixed WinForms implicit using conflicts for `Application`, `Color`, and `MessageBox`.
 - [x] Moved DPI mode to project property and simplified `app.manifest`.
 - [x] Set up file-based project memory and reformatted TODO/decisions.

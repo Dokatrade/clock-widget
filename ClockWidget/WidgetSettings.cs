@@ -53,6 +53,89 @@ public sealed class WidgetSettings
     public PomodoroSound PomodoroSound { get; set; } = PomodoroSound.FreesoundsNotification;
     public List<WidgetPreset> Presets { get; set; } = [];
 
+    public static IReadOnlyList<WidgetPreset> CreateBuiltInPresets()
+    {
+        return
+        [
+            CreateBuiltInPreset(new WidgetPreset
+            {
+                Name = "Compact",
+                Width = 260,
+                Height = 86,
+                FitToContent = true,
+                ClockFontSize = 42,
+                ClockFontWeight = 600,
+                PaddingHorizontal = 12,
+                PaddingTop = 7,
+                PaddingBottom = 7,
+                BackgroundShade = 18,
+                BackgroundOpacity = 0.78,
+                ShowBorder = true,
+                ShowSeconds = false,
+                ShowDate = true,
+                ShowWeekday = false,
+                DateFontSize = 11
+            }),
+            CreateBuiltInPreset(new WidgetPreset
+            {
+                Name = "Large",
+                Width = 430,
+                Height = 150,
+                FitToContent = true,
+                ClockFontSize = 76,
+                ClockFontWeight = 600,
+                PaddingHorizontal = 22,
+                PaddingTop = 12,
+                PaddingBottom = 12,
+                BackgroundShade = 18,
+                BackgroundOpacity = 0.85,
+                ShowBorder = true,
+                ShowSeconds = true,
+                ShowDate = true,
+                ShowWeekday = true,
+                DateFontSize = 16
+            }),
+            CreateBuiltInPreset(new WidgetPreset
+            {
+                Name = "Minimal",
+                Width = 300,
+                Height = 82,
+                FitToContent = true,
+                ClockFontSize = 56,
+                ClockFontWeight = 500,
+                PaddingHorizontal = 10,
+                PaddingTop = 6,
+                PaddingBottom = 6,
+                BackgroundShade = 0,
+                BackgroundOpacity = 0.55,
+                ShowBorder = false,
+                ShowSeconds = false,
+                ShowDate = false,
+                ShowWeekday = false,
+                DateFontSize = 12
+            }),
+            CreateBuiltInPreset(new WidgetPreset
+            {
+                Name = "Pomodoro",
+                Width = 340,
+                Height = 112,
+                FitToContent = true,
+                ClockFontSize = 60,
+                ClockFontWeight = 600,
+                PaddingHorizontal = 18,
+                PaddingTop = 10,
+                PaddingBottom = 12,
+                BackgroundShade = 8,
+                BackgroundOpacity = 0.9,
+                ShowBorder = true,
+                ShowSeconds = false,
+                ShowDate = true,
+                ShowWeekday = false,
+                DateFontSize = 13
+            })
+        ];
+    }
+
     public void Normalize()
     {
         Width = ClampFinite(Width, MinWidth, MaxWidth, 330);
@@ -201,6 +284,12 @@ public sealed class WidgetSettings
     {
         var clamped = Math.Clamp(value, MinClockFontWeight, MaxClockFontWeight);
         return (int)Math.Round(clamped / 100d) * 100;
+    }
+
+    private static WidgetPreset CreateBuiltInPreset(WidgetPreset preset)
+    {
+        preset.Normalize();
+        return preset;
     }
 }
 

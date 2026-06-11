@@ -54,10 +54,25 @@
 - Settings preset `Save`, `Load`, and `Delete` no longer invoke `SettingsApplied`; they edit only the dialog draft. `Apply` or `OK` commits changes to the live widget, so `Cancel` remains a true cancel.
 - `ClockWidget/PomodoroSession.cs` was added to own Pomodoro display mode, command handling, completion transitions, start/pause menu text, and display tick state. `MainWindow` now uses `_pomodoroSession` instead of direct `_pomodoro` and `_displayMode` fields.
 - `ClockWidget.Tests/PomodoroSessionTests.cs` was added for disabled toggle, start/pause visibility, break completion reset, and tick-state behavior.
+- Follow-up memory correction: `ClockWidget/PomodoroSession.cs` was added to the untracked/commit checklist, new decisions were moved to the correct project date `2026-06-11`, and the `MainWindow` decomposition decision list now includes the latest extracted services.
 - Available checks passed in assistant environment: no old Pomodoro state fields remain, and `git diff --check` is clean.
 - Build/publish still needs Windows verification because assistant environment lacks `dotnet`.
 - Date text was moved closer to the time in `ClockWidget/MainWindow.xaml` by changing `DateText` margin from `0,2,0,0` to `0,-2,0,0`.
 - Project memory layout was updated: root `AGENTS.md` is the active instruction file; `project-memory/AGENTS.md` was removed; remaining memory files now reference `project-memory/...` paths.
+- User reported the previous Windows verification checkpoint completed.
+- Latest implementation added built-in visual presets `Compact`, `Large`, `Minimal`, `Pomodoro` via `WidgetSettings.CreateBuiltInPresets()`.
+- Settings window now shows user presets plus built-in presets. Built-ins can be loaded but cannot be deleted; saving with the same name creates a user override.
+- Added `WidgetSettings` tests for preset apply semantics and built-in preset freshness/normalization.
+- Settings window was reorganized into tabs: `Presets`, `Appearance`, `Pomodoro`, `System`.
+- `MainWindow.xaml.cs` now shares helper methods for always-on-top, lock-position, and visible Pomodoro reset actions between context menu and tray adapters.
+- README was updated for tabbed Settings and built-in presets.
+- Available check passed: `git diff --check`. `dotnet test` could not run in assistant environment because `dotnet` is not installed.
+- Latest block extracted preset behavior to `ClockWidget/SettingsPresetCatalog.cs`; Settings UI now labels built-in/custom/custom override presets, disables deleting built-ins, changes custom override delete to reset, and shows `Save override` for built-in names.
+- `Apply` in Settings now uses exact in-memory draft comparison against normalized settings JSON, so it only enables when the draft differs from the last applied state.
+- Settings System tab now has user-triggered `Import` / `Export`; import changes only the dialog draft until `Apply` or `OK`, export writes only the selected file.
+- Second app launch now signals the existing process through a named event and brings the existing widget forward.
+- Window placement math moved to `ClockWidget/WindowPlacementGeometry.cs`; tests were added for clamp, snap, and default top-right position.
+- New tests added: `SettingsPresetCatalogTests`, `WindowPlacementGeometryTests`, and an extra `SettingsStore` JSON round-trip test.
 
 ## User Preferences
 

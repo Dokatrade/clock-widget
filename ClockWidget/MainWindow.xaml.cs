@@ -85,9 +85,7 @@ public partial class MainWindow : Window
 
     private void AlwaysOnTopMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        _settings.AlwaysOnTop = AlwaysOnTopMenuItem.IsChecked;
-        Topmost = _settings.AlwaysOnTop;
-        SaveSettings();
+        SetAlwaysOnTop(AlwaysOnTopMenuItem.IsChecked);
     }
 
     private void ShowSecondsMenuItem_Click(object sender, RoutedEventArgs e)
@@ -97,10 +95,26 @@ public partial class MainWindow : Window
         SaveSettings();
     }
 
+    private void SetAlwaysOnTop(bool enabled)
+    {
+        _settings.AlwaysOnTop = enabled;
+        Topmost = enabled;
+        AlwaysOnTopMenuItem.IsChecked = enabled;
+        SaveSettings();
+        UpdateTrayMenuState();
+    }
+
+    private void SetLockPosition(bool enabled)
+    {
+        _settings.LockPosition = enabled;
+        LockPositionMenuItem.IsChecked = enabled;
+        SaveSettings();
+        UpdateTrayMenuState();
+    }
+
     private void LockPositionMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        _settings.LockPosition = LockPositionMenuItem.IsChecked;
-        SaveSettings();
+        SetLockPosition(LockPositionMenuItem.IsChecked);
     }
 
     private void ResetPositionMenuItem_Click(object sender, RoutedEventArgs e)
@@ -125,8 +139,7 @@ public partial class MainWindow : Window
 
     private void PomodoroResetMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        ResetPomodoroState(showClock: false);
-        UpdateDisplayPreservingRightEdge();
+        ResetVisiblePomodoroState();
     }
 
     private void PomodoroStartPauseButton_Click(object sender, RoutedEventArgs e)
@@ -136,8 +149,7 @@ public partial class MainWindow : Window
 
     private void PomodoroResetButton_Click(object sender, RoutedEventArgs e)
     {
-        ResetPomodoroState(showClock: false);
-        UpdateDisplayPreservingRightEdge();
+        ResetVisiblePomodoroState();
     }
 
     private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
@@ -373,6 +385,12 @@ public partial class MainWindow : Window
         UpdateDisplayPreservingRightEdge();
     }
 
+    private void ResetVisiblePomodoroState()
+    {
+        ResetPomodoroState(showClock: false);
+        UpdateDisplayPreservingRightEdge();
+    }
+
     private void CompletePomodoroPhase(PomodoroPhaseCompletion completion)
     {
         PlayPomodoroCompletionSound();
@@ -505,8 +523,7 @@ public partial class MainWindow : Window
 
     private void ResetPomodoroFromTray()
     {
-        ResetPomodoroState(showClock: false);
-        UpdateDisplayPreservingRightEdge();
+        ResetVisiblePomodoroState();
     }
 
     private void ResetPositionFromTray()
@@ -517,19 +534,12 @@ public partial class MainWindow : Window
 
     private void ToggleAlwaysOnTopFromTray()
     {
-        _settings.AlwaysOnTop = !_settings.AlwaysOnTop;
-        Topmost = _settings.AlwaysOnTop;
-        AlwaysOnTopMenuItem.IsChecked = _settings.AlwaysOnTop;
-        SaveSettings();
-        UpdateTrayMenuState();
+        SetAlwaysOnTop(!_settings.AlwaysOnTop);
     }
 
     private void ToggleLockPositionFromTray()
     {
-        _settings.LockPosition = !_settings.LockPosition;
-        LockPositionMenuItem.IsChecked = _settings.LockPosition;
-        SaveSettings();
-        UpdateTrayMenuState();
+        SetLockPosition(!_settings.LockPosition);
     }
 
     private void RestoreRightEdge(double right)

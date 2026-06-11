@@ -102,4 +102,74 @@ public sealed class WidgetSettingsTests
         Assert.False(preset.ShowSeconds);
         Assert.False(preset.ShowDate);
     }
+
+    [Fact]
+    public void ApplyPreset_UpdatesVisualSettingsOnly()
+    {
+        var settings = new WidgetSettings
+        {
+            AlwaysOnTop = false,
+            LockPosition = true,
+            SnapToScreenEdges = false,
+            StartWithWindows = true,
+            PomodoroEnabled = false,
+            PomodoroFocusMinutes = 45,
+            PomodoroBreakMinutes = 12,
+            PomodoroAutoStartBreak = false,
+            PomodoroReturnToClockAfterBreak = false,
+            PomodoroPlaySound = false,
+            PomodoroSound = PomodoroSound.Harp
+        };
+        var preset = new WidgetPreset
+        {
+            Name = "Minimal",
+            ClockFontSize = 44,
+            BackgroundOpacity = 0.5,
+            ShowSeconds = false,
+            ShowDate = false
+        };
+
+        settings.ApplyPreset(preset);
+
+        Assert.Equal(44d, settings.ClockFontSize);
+        Assert.Equal(0.5d, settings.BackgroundOpacity);
+        Assert.False(settings.ShowSeconds);
+        Assert.False(settings.ShowDate);
+        Assert.False(settings.AlwaysOnTop);
+        Assert.True(settings.LockPosition);
+        Assert.False(settings.SnapToScreenEdges);
+        Assert.True(settings.StartWithWindows);
+        Assert.False(settings.PomodoroEnabled);
+        Assert.Equal(45, settings.PomodoroFocusMinutes);
+        Assert.Equal(12, settings.PomodoroBreakMinutes);
+        Assert.False(settings.PomodoroAutoStartBreak);
+        Assert.False(settings.PomodoroReturnToClockAfterBreak);
+        Assert.False(settings.PomodoroPlaySound);
+        Assert.Equal(PomodoroSound.Harp, settings.PomodoroSound);
+    }
+
+    [Fact]
+    public void CreateBuiltInPresets_ReturnsFreshNormalizedVisualPresets()
+    {
+        var presets = WidgetSettings.CreateBuiltInPresets();
+
+        Assert.Collection(
+            presets,
+            preset => Assert.Equal("Compact", preset.Name),
+            preset => Assert.Equal("Large", preset.Name),
+            preset => Assert.Equal("Minimal", preset.Name),
+            preset => Assert.Equal("Pomodoro", preset.Name));
+
+        foreach (var preset in presets)
+        {
+            Assert.InRange(preset.Width, WidgetSettings.MinWidth, WidgetSettings.MaxWidth);
+            Assert.InRange(preset.Height, WidgetSettings.MinHeight, WidgetSettings.MaxHeight);
+            Assert.InRange(preset.ClockFontSize, WidgetSettings.MinClockFontSize, WidgetSettings.MaxClockFontSize);
+            Assert.InRange(preset.BackgroundOpacity, WidgetSettings.MinBackgroundOpacity, WidgetSettings.MaxBackgroundOpacity);
+        }
+
+        presets[0].Name = "Changed";
+
+        Assert.Equal("Compact", WidgetSettings.CreateBuiltInPresets()[0].Name);
+    }
 }

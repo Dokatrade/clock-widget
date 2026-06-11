@@ -2,7 +2,7 @@
 
 ## Current State
 - WPF/.NET 8 Windows desktop clock widget.
-- Core UI: borderless transparent clock, date/weekday, settings window, visual presets, optional Pomodoro mode, sounds, tray icon, reset position command.
+- Core UI: borderless transparent clock, date/weekday, tabbed settings window, visual presets, optional Pomodoro mode, sounds, tray icon, reset position command.
 - Settings are stored in `%APPDATA%\ClockWidget\settings.json`.
 - Settings load/save logic is in `ClockWidget/SettingsStore.cs`.
 - `SettingsStore` has an internal constructor for test-only custom settings directories.
@@ -12,7 +12,13 @@
 - Display text/progress formatting logic is in `ClockWidget/WidgetDisplayFormatter.cs`.
 - Tray menu logic is in `ClockWidget/TrayIconController.cs`.
 - Window placement/snap/keep-on-screen logic is in `ClockWidget/WindowPlacementService.cs`.
+- Testable placement math is in `ClockWidget/WindowPlacementGeometry.cs`.
 - Pomodoro UI/session command logic is in `ClockWidget/PomodoroSession.cs`, backed by `PomodoroController`.
+- Built-in visual presets are created by `WidgetSettings.CreateBuiltInPresets()`.
+- Preset list/lookup/save/delete rules are in `ClockWidget/SettingsPresetCatalog.cs`; Settings UI shows built-in/custom/custom override labels, disables deleting built-ins, and resets custom overrides through Delete/Reset.
+- Settings import/export is user-triggered from the Settings window and uses `SettingsStore.Serialize()` / `SettingsStore.Deserialize()`.
+- `Apply` in Settings is enabled only when the current dialog draft differs from the last applied draft.
+- Single-instance behavior now signals the existing app instance to show/activate the existing widget when a second process starts.
 - `MainWindow.xaml.cs` still owns main UI orchestration, startup warning UI, applying display models to WPF controls, sounds, and calls into the helper services.
 - Reused/frozen display brushes are defined in `MainWindow.xaml.cs`; only the focus Pomodoro progress brush remains dynamic because its color changes with progress.
 - Pomodoro phase/running/remaining state is in `ClockWidget/PomodoroController.cs`.
@@ -32,13 +38,7 @@
 - User declined Pomodoro notifications for now.
 - Do not add production dependencies without explicit approval.
 - `ClockWidget/app.manifest` is intentionally tracked despite `.gitignore` ignoring `*.manifest`.
-- `ClockWidget/SettingsStore.cs`, `ClockWidget/TrayIconController.cs`, `ClockWidget/WindowPlacementService.cs`, and `ClockWidget/app.manifest` may be untracked until the user commits/adds them.
-- `ClockWidget/StartupSettingsService.cs` may be untracked until the user commits/adds it.
-- `ClockWidget/SettingsDialogController.cs` may be untracked until the user commits/adds it.
-- `ClockWidget/DisplayTickScheduler.cs` may be untracked until the user commits/adds it.
-- `ClockWidget/WidgetDisplayFormatter.cs` may be untracked until the user commits/adds it.
-- `ClockWidget/IClock.cs` may be untracked until the user commits/adds it.
-- `ClockWidget/Properties/AssemblyInfo.cs` and `ClockWidget.Tests/` may be untracked until the user commits/adds them.
+- As of 2026-06-11, `git ls-files --others --exclude-standard` is empty; the old new-file commit checklist is no longer needed.
 - The assistant environment has no `dotnet`; build/publish verification must be done by the user on Windows.
 - Project memory layout: keep durable instructions in root `AGENTS.md`; keep project state in `project-memory/HANDOFF.md`, `project-memory/TODO.md`, `project-memory/docs/decisions.md`, and `project-memory/docs/chat-notes.md`.
 
@@ -71,10 +71,24 @@
 - Changed Settings preset actions to edit only the settings-window draft. `Save`, `Load`, and `Delete` presets no longer apply to the live widget until `Apply` or `OK`, so `Cancel` remains a real cancel.
 - Added `PomodoroSession` to own Pomodoro display mode, command handling, completion transitions, menu header text, and display tick state.
 - Added `PomodoroSessionTests`.
+- User reported the previous Windows verification checkpoint completed.
+- Added built-in visual presets: `Compact`, `Large`, `Minimal`, `Pomodoro`.
+- Settings presets now combine user presets with built-in presets; built-ins can be loaded but cannot be deleted, and user presets with the same name act as custom overrides.
+- Added `WidgetSettings` tests for preset apply semantics and built-in preset freshness/normalization.
+- Reorganized `SettingsWindow` into tabs: Presets, Appearance, Pomodoro, System.
+- Reduced duplicated `MainWindow` context-menu/tray toggle and Pomodoro reset code with shared helper methods.
+- Updated README for tabbed Settings and built-in presets.
+- Extracted preset catalog logic to `SettingsPresetCatalog` and added tests for built-in/custom/custom override behavior.
+- Settings preset UI now labels built-ins/customs/overrides, disables deleting built-ins, changes `Delete` to `Reset` for custom overrides, and shows `Save override` for built-in names.
+- Settings `Apply` now tracks an exact in-memory draft diff against the last applied settings JSON.
+- Added user-triggered Settings import/export.
+- Added second-launch activation: duplicate process signals the first instance to show/activate the existing widget.
+- Extracted `WindowPlacementGeometry` and added tests for clamp/snap/default-position math.
 
 ## Next Focus
-- Next candidate: run `dotnet test .\ClockWidget.sln` on Windows and manually verify Settings preset `Cancel` semantics.
-- Continue shrinking `MainWindow.xaml.cs` around tray action adapters if useful.
+- Next candidate: run `dotnet test .\ClockWidget.sln` on Windows after the latest Settings/preset/import/export/activation changes.
+- Manually verify Settings tabs, preset labels/override reset, Apply dirty-state, import/export, second-launch activation, and snap/reset positioning after the next publish/run.
+- Continue shrinking `MainWindow.xaml.cs` only when another clear responsibility boundary appears.
 - Keep `project-memory` files updated after substantial work.
 
 ## Links

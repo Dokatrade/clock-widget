@@ -62,6 +62,29 @@ public sealed class SettingsStoreTests
         Assert.True(settings.ShowSeconds);
     }
 
+    [Fact]
+    public void SerializeAndDeserialize_RoundTripsNormalizedSettings()
+    {
+        var settings = new WidgetSettings
+        {
+            Width = 9999,
+            ShowSeconds = false,
+            Presets =
+            [
+                new WidgetPreset { Name = "  Compact Custom  ", ClockFontSize = 44 }
+            ]
+        };
+
+        var json = SettingsStore.Serialize(settings);
+        var restored = SettingsStore.Deserialize(json);
+
+        Assert.Equal(WidgetSettings.MaxWidth, restored.Width);
+        Assert.False(restored.ShowSeconds);
+        Assert.Single(restored.Presets);
+        Assert.Equal("Compact Custom", restored.Presets[0].Name);
+        Assert.Equal(44d, restored.Presets[0].ClockFontSize);
+    }
+
     private sealed class TempDirectory : IDisposable
     {
         private TempDirectory(string path)

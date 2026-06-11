@@ -27,16 +27,20 @@ internal static class WindowPlacementService
 
         var currentLeft = double.IsFinite(window.Left) ? window.Left : bounds.Right - width - 32;
         var currentTop = double.IsFinite(window.Top) ? window.Top : bounds.Top + 32;
-        var newLeft = ClampPosition(currentLeft, bounds.Left, bounds.Right - width);
-        var newTop = ClampPosition(currentTop, bounds.Top, bounds.Bottom - height);
+        var placement = WindowPlacementGeometry.ClampIntoBounds(
+            currentLeft,
+            currentTop,
+            width,
+            height,
+            ToPlacementBounds(bounds));
 
-        if (Math.Abs(newLeft - window.Left) < 0.5 && Math.Abs(newTop - window.Top) < 0.5)
+        if (!placement.Changed)
         {
             return false;
         }
 
-        window.Left = newLeft;
-        window.Top = newTop;
+        window.Left = placement.Left;
+        window.Top = placement.Top;
         return true;
     }
 
@@ -50,37 +54,22 @@ internal static class WindowPlacementService
         var bounds = GetCurrentScreenWorkArea(window, fallbackWidth, fallbackHeight);
         var width = GetWindowWidth(window, fallbackWidth);
         var height = GetWindowHeight(window, fallbackHeight);
+        var placement = WindowPlacementGeometry.SnapToEdges(
+            window.Left,
+            window.Top,
+            width,
+            height,
+            ToPlacementBounds(bounds),
+            SnapThreshold);
 
-        var leftEdge = bounds.Left;
-        var topEdge = bounds.Top;
-        var rightEdge = bounds.Right - width;
-        var bottomEdge = bounds.Bottom - height;
-
-        var snapped = false;
-
-        if (Math.Abs(window.Left - leftEdge) <= SnapThreshold)
+        if (!placement.Changed)
         {
-            window.Left = leftEdge;
-            snapped = true;
-        }
-        else if (Math.Abs(window.Left - rightEdge) <= SnapThreshold)
-        {
-            window.Left = rightEdge;
-            snapped = true;
+            return false;
         }
 
-        if (Math.Abs(window.Top - topEdge) <= SnapThreshold)
-        {
-            window.Top = topEdge;
-            snapped = true;
-        }
-        else if (Math.Abs(window.Top - bottomEdge) <= SnapThreshold)
-        {
-            window.Top = bottomEdge;
-            snapped = true;
-        }
-
-        return snapped;
+        window.Left = placement.Left;
+        window.Top = placement.Top;
+        return true;
     }
 
     public static void RestoreRightEdge(Window window, double right, double fallbackWidth, double fallbackHeight)
@@ -101,9 +90,13 @@ internal static class WindowPlacementService
             ? GetCurrentScreenWorkArea(window, fallbackWidth, fallbackHeight)
             : GetVirtualScreenBounds();
         var width = GetWindowWidth(window, fallbackWidth);
+        var placement = WindowPlacementGeometry.GetDefaultPosition(
+            width,
+            ToPlacementBounds(bounds),
+            offset: 32);
 
-        window.Left = bounds.Right - width - 32;
-        window.Top = bounds.Top + 32;
+        window.Left = placement.Left;
+        window.Top = placement.Top;
         EnsureOnScreen(window, fallbackWidth, fallbackHeight);
     }
 
@@ -161,8 +154,8 @@ internal static class WindowPlacementService
             ?? Matrix.Identity;
     }
 
-    private static double ClampPosition(double value, double min, double max)
+    private static WindowPlacementBounds ToPlacementBounds(Rect bounds)
     {
-        return min > max ? min : Math.Clamp(value, min, max);
+        return new WindowPlacementBounds(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
     }
 }

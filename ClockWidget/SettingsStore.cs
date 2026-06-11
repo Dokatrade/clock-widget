@@ -37,9 +37,7 @@ internal sealed class SettingsStore
             }
 
             _lastSavedJson = File.ReadAllText(_settingsPath);
-            var settings = JsonSerializer.Deserialize<WidgetSettings>(_lastSavedJson) ?? new WidgetSettings();
-            settings.Normalize();
-            return settings;
+            return Deserialize(_lastSavedJson);
         }
         catch
         {
@@ -50,9 +48,7 @@ internal sealed class SettingsStore
 
     public void Save(WidgetSettings settings)
     {
-        var normalizedSettings = settings.Clone();
-        normalizedSettings.Normalize();
-        var json = JsonSerializer.Serialize(normalizedSettings, JsonOptions);
+        var json = Serialize(settings);
         if (json == _lastSavedJson)
         {
             return;
@@ -61,5 +57,19 @@ internal sealed class SettingsStore
         Directory.CreateDirectory(_settingsDirectory);
         File.WriteAllText(_settingsPath, json);
         _lastSavedJson = json;
+    }
+
+    public static string Serialize(WidgetSettings settings)
+    {
+        var normalizedSettings = settings.Clone();
+        normalizedSettings.Normalize();
+        return JsonSerializer.Serialize(normalizedSettings, JsonOptions);
+    }
+
+    public static WidgetSettings Deserialize(string json)
+    {
+        var settings = JsonSerializer.Deserialize<WidgetSettings>(json) ?? new WidgetSettings();
+        settings.Normalize();
+        return settings;
     }
 }
