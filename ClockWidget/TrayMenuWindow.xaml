@@ -1,0 +1,217 @@
+<Window x:Class="ClockWidget.TrayMenuWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Clock Widget Menu"
+        Width="264"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        ShowActivated="True"
+        Topmost="True"
+        Deactivated="Window_Deactivated">
+  <Window.Resources>
+    <Style x:Key="TrayMenuButtonStyle"
+           TargetType="Button">
+      <Setter Property="Height"
+              Value="44" />
+      <Setter Property="Padding"
+              Value="12,0" />
+      <Setter Property="HorizontalContentAlignment"
+              Value="Stretch" />
+      <Setter Property="VerticalContentAlignment"
+              Value="Center" />
+      <Setter Property="Foreground"
+              Value="#FFF8FAFC" />
+      <Setter Property="Background"
+              Value="Transparent" />
+      <Setter Property="BorderThickness"
+              Value="0" />
+      <Setter Property="FontFamily"
+              Value="Segoe UI Variable Text, Segoe UI, Arial" />
+      <Setter Property="FontSize"
+              Value="17" />
+      <Setter Property="FontWeight"
+              Value="SemiBold" />
+      <Setter Property="Focusable"
+              Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="ButtonSurface"
+                    Margin="4,1"
+                    Padding="{TemplateBinding Padding}"
+                    Background="{TemplateBinding Background}"
+                    CornerRadius="6">
+              <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver"
+                       Value="True">
+                <Setter TargetName="ButtonSurface"
+                        Property="Background"
+                        Value="#2438BDF8" />
+              </Trigger>
+              <Trigger Property="IsPressed"
+                       Value="True">
+                <Setter TargetName="ButtonSurface"
+                        Property="Background"
+                        Value="#3638BDF8" />
+              </Trigger>
+              <Trigger Property="IsEnabled"
+                       Value="False">
+                <Setter Property="Foreground"
+                        Value="#70F8FAFC" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <Border Background="#F0000000"
+          BorderBrush="#66FFFFFF"
+          BorderThickness="1"
+          CornerRadius="8"
+          Padding="4">
+    <Border.Effect>
+      <DropShadowEffect BlurRadius="18"
+                        ShadowDepth="4"
+                        Opacity="0.35"
+                        Color="#000000" />
+    </Border.Effect>
+    <StackPanel>
+      <Button x:Name="ShowHideButton"
+              Style="{StaticResource TrayMenuButtonStyle}"
+              Click="ShowHideButton_Click">
+        <Grid>
+          <TextBlock x:Name="ShowHideText"
+                     Text="Hide widget" />
+        </Grid>
+      </Button>
+
+      <Button Style="{StaticResource TrayMenuButtonStyle}"
+              Click="SettingsButton_Click">
+        <Grid>
+          <TextBlock Text="Settings..." />
+        </Grid>
+      </Button>
+
+      <Border Height="1"
+              Margin="10,5"
+              Background="#26FFFFFF" />
+
+      <Button x:Name="AlwaysOnTopButton"
+              Style="{StaticResource TrayMenuButtonStyle}"
+              Click="AlwaysOnTopButton_Click">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="24" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="AlwaysOnTopCheck"
+                     Grid.Column="0"
+                     Text="✓"
+                     FontSize="16"
+                     Visibility="Collapsed" />
+          <TextBlock Grid.Column="1"
+                     Text="Always on top" />
+        </Grid>
+      </Button>
+
+      <Button x:Name="LockPositionButton"
+              Style="{StaticResource TrayMenuButtonStyle}"
+              Click="LockPositionButton_Click">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="24" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="LockPositionCheck"
+                     Grid.Column="0"
+                     Text="✓"
+                     FontSize="16"
+                     Visibility="Collapsed" />
+          <TextBlock Grid.Column="1"
+                     Text="Lock position" />
+        </Grid>
+      </Button>
+
+      <Button Style="{StaticResource TrayMenuButtonStyle}"
+              Click="ResetPositionButton_Click">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="24" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Grid.Column="1"
+                     Text="Reset position" />
+        </Grid>
+      </Button>
+
+      <Border Height="1"
+              Margin="10,5"
+              Background="#26FFFFFF" />
+
+      <Button x:Name="PomodoroModeButton"
+              Style="{StaticResource TrayMenuButtonStyle}"
+              Click="PomodoroModeButton_Click">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="24" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="PomodoroModeCheck"
+                     Grid.Column="0"
+                     Text="✓"
+                     FontSize="16"
+                     Visibility="Collapsed" />
+          <TextBlock Grid.Column="1"
+                     Text="Show Pomodoro" />
+        </Grid>
+      </Button>
+
+      <Button x:Name="PomodoroStartPauseButton"
+              Style="{StaticResource TrayMenuButtonStyle}"
+              Click="PomodoroStartPauseButton_Click">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="24" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock x:Name="PomodoroStartPauseText"
+                     Grid.Column="1"
+                     Text="Start Pomodoro" />
+        </Grid>
+      </Button>
+
+      <Button x:Name="PomodoroResetButton"
+              Style="{StaticResource TrayMenuButtonStyle}"
+              Click="PomodoroResetButton_Click">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="24" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Grid.Column="1"
+                     Text="Reset Pomodoro" />
+        </Grid>
+      </Button>
+
+      <Border Height="1"
+              Margin="10,5"
+              Background="#26FFFFFF" />
+
+      <Button Style="{StaticResource TrayMenuButtonStyle}"
+              Click="ExitButton_Click">
+        <Grid>
+          <TextBlock Text="Exit" />
+        </Grid>
+      </Button>
+    </StackPanel>
+  </Border>
+</Window>

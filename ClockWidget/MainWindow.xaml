@@ -65,6 +65,22 @@
         </Setter.Value>
       </Setter>
     </Style>
+
+    <Style TargetType="ContextMenu">
+      <Setter Property="FontFamily"
+              Value="Segoe UI Variable Text, Segoe UI, Arial" />
+      <Setter Property="FontSize"
+              Value="17" />
+    </Style>
+
+    <Style TargetType="MenuItem">
+      <Setter Property="MinHeight"
+              Value="30" />
+      <Setter Property="Padding"
+              Value="10,3" />
+      <Setter Property="FontSize"
+              Value="17" />
+    </Style>
   </Window.Resources>
 
   <Border x:Name="Root"
@@ -92,6 +108,10 @@
                   IsCheckable="True"
                   IsChecked="True"
                   Click="ShowSecondsMenuItem_Click" />
+        <MenuItem x:Name="ShowSideDateMenuItem"
+                  Header="Show side date"
+                  IsCheckable="True"
+                  Click="ShowSideDateMenuItem_Click" />
         <MenuItem x:Name="LockPositionMenuItem"
                   Header="Lock position"
                   IsCheckable="True"
@@ -109,6 +129,8 @@
         <MenuItem x:Name="PomodoroResetMenuItem"
                   Header="Reset Pomodoro"
                   Click="PomodoroResetMenuItem_Click" />
+        <MenuItem Header="Pomodoro Stats"
+                  Click="PomodoroStatsMenuItem_Click" />
         <Separator />
         <MenuItem Header="Settings..."
                   Click="SettingsMenuItem_Click" />
@@ -121,6 +143,7 @@
     <Grid HorizontalAlignment="Center"
           VerticalAlignment="Center">
       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
@@ -195,6 +218,69 @@
                  Foreground="#CCF8FAFC"
                  HorizontalAlignment="Center"
                  TextAlignment="Center" />
+
+      <StackPanel x:Name="PomodoroDailyStats"
+                  Grid.Row="0"
+                  Grid.RowSpan="3"
+                  Grid.Column="2"
+                  Orientation="Vertical"
+                  VerticalAlignment="Center"
+                  Margin="12,0,0,0"
+                  Visibility="Collapsed">
+        <TextBlock x:Name="PomodoroDailyCountText"
+                   FontFamily="Segoe UI Variable Text, Segoe UI, Arial"
+                   FontSize="20"
+                   FontWeight="SemiBold"
+                   Foreground="#FFF8FAFC"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   MinWidth="30"
+                   ToolTip="Pomodoro today" />
+        <TextBlock x:Name="PomodoroDailyFocusMinutesText"
+                   Margin="0,2,0,0"
+                   FontFamily="Segoe UI Variable Text, Segoe UI, Arial"
+                   FontSize="20"
+                   FontWeight="SemiBold"
+                   Foreground="#FFF8FAFC"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   MinWidth="30"
+                   ToolTip="Focus minutes today" />
+      </StackPanel>
+
+      <Grid x:Name="ClockSideDate"
+            Grid.Row="1"
+            Grid.Column="2"
+            VerticalAlignment="Center"
+            Margin="8,0,0,0"
+            Visibility="Collapsed">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*" />
+          <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="ClockSideDateDayText"
+                   Grid.Row="0"
+                   FontFamily="Segoe UI Variable Text, Segoe UI, Arial"
+                   FontSize="22"
+                   FontWeight="SemiBold"
+                   Foreground="#FFF8FAFC"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"
+                   LineStackingStrategy="BlockLineHeight"
+                   MinWidth="32" />
+        <TextBlock x:Name="ClockSideDateMonthText"
+                   Grid.Row="1"
+                   FontFamily="Segoe UI Variable Text, Segoe UI, Arial"
+                   FontSize="22"
+                   FontWeight="SemiBold"
+                   Foreground="#CCF8FAFC"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"
+                   LineStackingStrategy="BlockLineHeight"
+                   MinWidth="32" />
+      </Grid>
     </Grid>
   </Border>
 </Window>

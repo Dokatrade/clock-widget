@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -42,6 +43,7 @@ public partial class MainWindow : Window
         _settings = _settingsStore.Load();
         _settings.StartWithWindows = _startupSettingsService.ReadEnabled();
         _settings.Normalize();
+        ResetPomodoroDailyStatsIfNeeded(DateTime.Now);
         ResetPomodoroState(showClock: true);
         ApplySettings();
 
@@ -53,6 +55,12 @@ public partial class MainWindow : Window
 
     private void Root_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        if ((Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
+        {
+            ToggleSideDateFromClockShortcut();
+            return;
+        }
+
         if (_settings.PomodoroEnabled && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
             TogglePomodoroDisplay();
@@ -92,6 +100,29 @@ public partial class MainWindow : Window
     {
         _settings.ShowSeconds = ShowSecondsMenuItem.IsChecked;
         UpdateDisplayAndScheduleNextTick();
+        SaveSettings();
+    }
+
+    private void ShowSideDateMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        SetSideDateVisible(ShowSideDateMenuItem.IsChecked);
+    }
+
+    private void ToggleSideDateFromClockShortcut()
+    {
+        if (_pomodoroSession.IsPomodoroDisplayVisible(_settings))
+        {
+            return;
+        }
+
+        SetSideDateVisible(!_settings.ShowSideDate);
+    }
+
+    private void SetSideDateVisible(bool visible)
+    {
+        _settings.ShowSideDate = visible;
+        ShowSideDateMenuItem.IsChecked = visible;
+        UpdateDisplayPreservingRightEdge();
         SaveSettings();
     }
 
@@ -142,6 +173,11 @@ public partial class MainWindow : Window
         ResetVisiblePomodoroState();
     }
 
+    private void PomodoroStatsMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        OpenPomodoroStats();
+    }
+
     private void PomodoroStartPauseButton_Click(object sender, RoutedEventArgs e)
     {
         TogglePomodoroStartPause();
@@ -186,6 +222,7 @@ public partial class MainWindow : Window
         Topmost = _settings.AlwaysOnTop;
         AlwaysOnTopMenuItem.IsChecked = _settings.AlwaysOnTop;
         ShowSecondsMenuItem.IsChecked = _settings.ShowSeconds;
+        ShowSideDateMenuItem.IsChecked = _settings.ShowSideDate;
         LockPositionMenuItem.IsChecked = _settings.LockPosition;
         UpdatePomodoroMenuState();
         ApplyAppearanceSettings();
@@ -228,6 +265,16 @@ public partial class MainWindow : Window
         TimeText.LineHeight = _settings.ClockFontSize;
         DateText.FontSize = _settings.DateFontSize;
         DateText.Visibility = _settings.ShowDate ? Visibility.Visible : Visibility.Collapsed;
+        var statsFontSize = Math.Clamp(_settings.ClockFontSize * 0.38, 16, 34);
+        PomodoroDailyCountText.FontSize = statsFontSize;
+        PomodoroDailyFocusMinutesText.FontSize = statsFontSize;
+        var sideDateFontSize = Math.Clamp(_settings.ClockFontSize * 0.46, 20, 40);
+        var sideDateLineHeight = Math.Min(_settings.ClockFontSize / 2, sideDateFontSize * 1.08);
+        ClockSideDate.Height = _settings.ClockFontSize;
+        ClockSideDateDayText.FontSize = sideDateFontSize;
+        ClockSideDateMonthText.FontSize = sideDateFontSize;
+        ClockSideDateDayText.LineHeight = sideDateLineHeight;
+        ClockSideDateMonthText.LineHeight = sideDateLineHeight;
     }
 
     private void UpdateDisplay()
@@ -239,6 +286,7 @@ public partial class MainWindow : Window
             && !double.IsNaN(right)
             && ActualWidth > 0;
 
+        ResetPomodoroDailyStatsIfNeeded(DateTime.Now);
         UpdatePomodoroState();
 
         if (_pomodoroSession.IsPomodoroDisplayVisible(_settings))
@@ -292,6 +340,10 @@ public partial class MainWindow : Window
             GetBreakDuration());
 
         PomodoroControls.Visibility = Visibility.Collapsed;
+        PomodoroDailyStats.Visibility = Visibility.Collapsed;
+        ClockSideDate.Visibility = display.ShowSideDate ? Visibility.Visible : Visibility.Collapsed;
+        ClockSideDateDayText.Text = display.SideDateDayText;
+        ClockSideDateMonthText.Text = display.SideDateMonthText;
         ApplyPomodoroProgress(display.Progress);
         TimeText.Text = display.TimeText;
         TimeText.Foreground = ClockTextBrush;
@@ -308,6 +360,8 @@ public partial class MainWindow : Window
             GetBreakDuration());
 
         PomodoroControls.Visibility = Visibility.Visible;
+        ClockSideDate.Visibility = Visibility.Collapsed;
+        UpdatePomodoroDailyStats();
         PomodoroStartPauseButton.Content = display.StartPauseText;
         ApplyPomodoroProgress(display.Progress);
         TimeText.Text = display.TimeText;
@@ -393,6 +447,11 @@ public partial class MainWindow : Window
 
     private void CompletePomodoroPhase(PomodoroPhaseCompletion completion)
     {
+        if (completion == PomodoroPhaseCompletion.FocusCompleted)
+        {
+            RecordPomodoroFocusCompletion();
+        }
+
         PlayPomodoroCompletionSound();
 
         _pomodoroSession.CompletePhase(
@@ -409,7 +468,77 @@ public partial class MainWindow : Window
     private void ApplyPomodoroSettings()
     {
         _settings.Normalize();
+        ResetPomodoroDailyStatsIfNeeded(DateTime.Now);
         _pomodoroSession.ApplySettings(_settings, GetFocusDuration());
+        UpdateDisplayAndScheduleNextTick();
+    }
+
+    private void UpdatePomodoroDailyStats()
+    {
+        if (!_settings.ShowPomodoroDailyStats)
+        {
+            PomodoroDailyStats.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        PomodoroDailyCountText.Text = _settings.PomodoroDailyCount.ToString(CultureInfo.InvariantCulture);
+        PomodoroDailyFocusMinutesText.Text = $"{_settings.PomodoroDailyFocusMinutes.ToString(CultureInfo.InvariantCulture)}m";
+        PomodoroDailyStats.Visibility = Visibility.Visible;
+    }
+
+    private void RecordPomodoroFocusCompletion()
+    {
+        ResetPomodoroDailyStatsIfNeeded(DateTime.Now);
+        _settings.PomodoroDailyCount++;
+        _settings.PomodoroDailyFocusMinutes += (int)Math.Round(GetFocusDuration().TotalMinutes);
+        _settings.UpsertPomodoroStatsHistoryEntry(
+            _settings.PomodoroDailyStatsDate,
+            _settings.PomodoroDailyCount,
+            _settings.PomodoroDailyFocusMinutes);
+        SaveSettings();
+    }
+
+    private void ResetPomodoroDailyStatsIfNeeded(DateTime now)
+    {
+        var today = now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (string.Equals(_settings.PomodoroDailyStatsDate, today, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _settings.UpsertPomodoroStatsHistoryEntry(
+            _settings.PomodoroDailyStatsDate,
+            _settings.PomodoroDailyCount,
+            _settings.PomodoroDailyFocusMinutes);
+
+        _settings.PomodoroDailyStatsDate = today;
+        var todayEntry = _settings.PomodoroStatsHistory.FirstOrDefault(entry =>
+            string.Equals(entry.Date, today, StringComparison.Ordinal));
+        _settings.PomodoroDailyCount = todayEntry?.Count ?? 0;
+        _settings.PomodoroDailyFocusMinutes = todayEntry?.FocusMinutes ?? 0;
+    }
+
+    private void OpenPomodoroStats()
+    {
+        ResetPomodoroDailyStatsIfNeeded(DateTime.Now);
+        UpdatePomodoroState();
+        UpdateDisplayAndScheduleNextTick();
+
+        var statsWindow = new PomodoroStatsWindow(
+            _settings,
+            _pomodoroSession.Controller,
+            ResetPomodoroStats)
+        {
+            Owner = this
+        };
+
+        statsWindow.ShowDialog();
+    }
+
+    private void ResetPomodoroStats()
+    {
+        _settings.ResetPomodoroStats(DateTime.Now);
+        SaveSettings();
         UpdateDisplayAndScheduleNextTick();
     }
 

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ClockWidget;
 
 public sealed class WidgetSettings
@@ -38,6 +40,7 @@ public sealed class WidgetSettings
     public bool ShowBorder { get; set; } = true;
     public bool AlwaysOnTop { get; set; } = true;
     public bool ShowSeconds { get; set; } = true;
+    public bool ShowSideDate { get; set; }
     public bool ShowDate { get; set; } = true;
     public bool ShowWeekday { get; set; } = true;
     public double DateFontSize { get; set; } = 13;
@@ -50,7 +53,12 @@ public sealed class WidgetSettings
     public bool PomodoroAutoStartBreak { get; set; } = true;
     public bool PomodoroReturnToClockAfterBreak { get; set; } = true;
     public bool PomodoroPlaySound { get; set; } = true;
+    public bool ShowPomodoroDailyStats { get; set; }
     public PomodoroSound PomodoroSound { get; set; } = PomodoroSound.FreesoundsNotification;
+    public string PomodoroDailyStatsDate { get; set; } = "";
+    public int PomodoroDailyCount { get; set; }
+    public int PomodoroDailyFocusMinutes { get; set; }
+    public List<PomodoroStatsEntry> PomodoroStatsHistory { get; set; } = [];
     public List<WidgetPreset> Presets { get; set; } = [];
 
     public static IReadOnlyList<WidgetPreset> CreateBuiltInPresets()
@@ -150,6 +158,13 @@ public sealed class WidgetSettings
         DateFontSize = ClampFinite(DateFontSize, MinDateFontSize, MaxDateFontSize, 13);
         PomodoroFocusMinutes = Math.Clamp(PomodoroFocusMinutes, MinPomodoroFocusMinutes, MaxPomodoroFocusMinutes);
         PomodoroBreakMinutes = Math.Clamp(PomodoroBreakMinutes, MinPomodoroBreakMinutes, MaxPomodoroBreakMinutes);
+        PomodoroDailyCount = Math.Max(0, PomodoroDailyCount);
+        PomodoroDailyFocusMinutes = Math.Max(0, PomodoroDailyFocusMinutes);
+        PomodoroStatsHistory = NormalizePomodoroStatsHistory(PomodoroStatsHistory);
+        UpsertPomodoroStatsHistoryEntry(
+            PomodoroDailyStatsDate,
+            PomodoroDailyCount,
+            PomodoroDailyFocusMinutes);
 
         if (!Enum.IsDefined(typeof(PomodoroSound), PomodoroSound))
         {
@@ -184,6 +199,7 @@ public sealed class WidgetSettings
         BackgroundShade = defaults.BackgroundShade;
         BackgroundOpacity = defaults.BackgroundOpacity;
         ShowBorder = defaults.ShowBorder;
+        ShowSideDate = defaults.ShowSideDate;
         ShowDate = defaults.ShowDate;
         ShowWeekday = defaults.ShowWeekday;
         DateFontSize = defaults.DateFontSize;
@@ -209,6 +225,7 @@ public sealed class WidgetSettings
             ShowBorder = ShowBorder,
             AlwaysOnTop = AlwaysOnTop,
             ShowSeconds = ShowSeconds,
+            ShowSideDate = ShowSideDate,
             ShowDate = ShowDate,
             ShowWeekday = ShowWeekday,
             DateFontSize = DateFontSize,
@@ -221,9 +238,52 @@ public sealed class WidgetSettings
             PomodoroAutoStartBreak = PomodoroAutoStartBreak,
             PomodoroReturnToClockAfterBreak = PomodoroReturnToClockAfterBreak,
             PomodoroPlaySound = PomodoroPlaySound,
+            ShowPomodoroDailyStats = ShowPomodoroDailyStats,
             PomodoroSound = PomodoroSound,
+            PomodoroDailyStatsDate = PomodoroDailyStatsDate,
+            PomodoroDailyCount = PomodoroDailyCount,
+            PomodoroDailyFocusMinutes = PomodoroDailyFocusMinutes,
+            PomodoroStatsHistory = (PomodoroStatsHistory ?? []).Select(entry => entry.Clone()).ToList(),
             Presets = (Presets ?? []).Select(preset => preset.Clone()).ToList()
         };
+    }
+
+    public void UpsertPomodoroStatsHistoryEntry(string date, int count, int focusMinutes)
+    {
+        date = NormalizeStatsDate(date);
+        count = Math.Max(0, count);
+        focusMinutes = Math.Max(0, focusMinutes);
+        if (date.Length == 0 || count == 0 && focusMinutes == 0)
+        {
+            return;
+        }
+
+        var existing = PomodoroStatsHistory.FirstOrDefault(entry =>
+            string.Equals(entry.Date, date, StringComparison.Ordinal));
+        if (existing is null)
+        {
+            PomodoroStatsHistory.Add(new PomodoroStatsEntry
+            {
+                Date = date,
+                Count = count,
+                FocusMinutes = focusMinutes
+            });
+        }
+        else
+        {
+            existing.Count = count;
+            existing.FocusMinutes = focusMinutes;
+        }
+
+        PomodoroStatsHistory = NormalizePomodoroStatsHistory(PomodoroStatsHistory);
+    }
+
+    public void ResetPomodoroStats(DateTime now)
+    {
+        PomodoroDailyStatsDate = now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        PomodoroDailyCount = 0;
+        PomodoroDailyFocusMinutes = 0;
+        PomodoroStatsHistory = [];
     }
 
     public WidgetPreset CreatePreset(string name)
@@ -243,6 +303,7 @@ public sealed class WidgetSettings
             BackgroundOpacity = BackgroundOpacity,
             ShowBorder = ShowBorder,
             ShowSeconds = ShowSeconds,
+            ShowSideDate = ShowSideDate,
             ShowDate = ShowDate,
             ShowWeekday = ShowWeekday,
             DateFontSize = DateFontSize
@@ -267,6 +328,7 @@ public sealed class WidgetSettings
         BackgroundOpacity = preset.BackgroundOpacity;
         ShowBorder = preset.ShowBorder;
         ShowSeconds = preset.ShowSeconds;
+        ShowSideDate = preset.ShowSideDate;
         ShowDate = preset.ShowDate;
         ShowWeekday = preset.ShowWeekday;
         DateFontSize = preset.DateFontSize;
@@ -291,6 +353,58 @@ public sealed class WidgetSettings
         preset.Normalize();
         return preset;
     }
+
+    private static List<PomodoroStatsEntry> NormalizePomodoroStatsHistory(IEnumerable<PomodoroStatsEntry>? entries)
+    {
+        return (entries ?? [])
+            .Select(entry => entry.Clone())
+            .Select(entry =>
+            {
+                entry.Date = NormalizeStatsDate(entry.Date);
+                entry.Count = Math.Max(0, entry.Count);
+                entry.FocusMinutes = Math.Max(0, entry.FocusMinutes);
+                return entry;
+            })
+            .Where(entry => entry.Date.Length > 0 && (entry.Count > 0 || entry.FocusMinutes > 0))
+            .GroupBy(entry => entry.Date, StringComparer.Ordinal)
+            .Select(group => new PomodoroStatsEntry
+            {
+                Date = group.Key,
+                Count = group.Sum(entry => entry.Count),
+                FocusMinutes = group.Sum(entry => entry.FocusMinutes)
+            })
+            .OrderBy(entry => entry.Date, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private static string NormalizeStatsDate(string? date)
+    {
+        return DateTime.TryParseExact(
+            date,
+            "yyyy-MM-dd",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var parsed)
+            ? parsed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : "";
+    }
+}
+
+public sealed class PomodoroStatsEntry
+{
+    public string Date { get; set; } = "";
+    public int Count { get; set; }
+    public int FocusMinutes { get; set; }
+
+    public PomodoroStatsEntry Clone()
+    {
+        return new PomodoroStatsEntry
+        {
+            Date = Date,
+            Count = Count,
+            FocusMinutes = FocusMinutes
+        };
+    }
 }
 
 public sealed class WidgetPreset
@@ -308,6 +422,7 @@ public sealed class WidgetPreset
     public double BackgroundOpacity { get; set; } = 0.85;
     public bool ShowBorder { get; set; } = true;
     public bool ShowSeconds { get; set; } = true;
+    public bool ShowSideDate { get; set; }
     public bool ShowDate { get; set; } = true;
     public bool ShowWeekday { get; set; } = true;
     public double DateFontSize { get; set; } = 13;
@@ -344,6 +459,7 @@ public sealed class WidgetPreset
             BackgroundOpacity = BackgroundOpacity,
             ShowBorder = ShowBorder,
             ShowSeconds = ShowSeconds,
+            ShowSideDate = ShowSideDate,
             ShowDate = ShowDate,
             ShowWeekday = ShowWeekday,
             DateFontSize = DateFontSize

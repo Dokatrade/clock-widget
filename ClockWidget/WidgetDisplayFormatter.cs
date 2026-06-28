@@ -18,6 +18,9 @@ internal sealed class WidgetDisplayFormatter
                 ? now.ToString(settings.ShowWeekday ? "dddd, d MMMM yyyy" : "d MMMM yyyy", CultureInfo.CurrentCulture)
                 : "",
             ShowDate: settings.ShowDate,
+            SideDateDayText: now.ToString("dd", CultureInfo.InvariantCulture),
+            SideDateMonthText: now.ToString("MM", CultureInfo.InvariantCulture),
+            ShowSideDate: settings.ShowSideDate,
             Progress: settings.PomodoroEnabled && pomodoro.IsRunning
                 ? BuildProgress(pomodoro, focusDuration, breakDuration)
                 : PomodoroProgressModel.Hidden);
@@ -99,6 +102,9 @@ internal sealed record ClockDisplayModel(
     string TimeText,
     string DateText,
     bool ShowDate,
+    string SideDateDayText,
+    string SideDateMonthText,
+    bool ShowSideDate,
     PomodoroProgressModel Progress);
 
 internal sealed record PomodoroDisplayModel(

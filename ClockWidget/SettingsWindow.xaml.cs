@@ -68,6 +68,7 @@ public partial class SettingsWindow : Window
         PomodoroBreakMinutesSlider.Value = Settings.PomodoroBreakMinutes;
         PomodoroAutoStartBreakCheckBox.IsChecked = Settings.PomodoroAutoStartBreak;
         PomodoroReturnToClockCheckBox.IsChecked = Settings.PomodoroReturnToClockAfterBreak;
+        ShowPomodoroDailyStatsCheckBox.IsChecked = Settings.ShowPomodoroDailyStats;
         PomodoroPlaySoundCheckBox.IsChecked = Settings.PomodoroPlaySound;
         PomodoroSoundComboBox.SelectedValue = Settings.PomodoroSound;
 
@@ -106,6 +107,7 @@ public partial class SettingsWindow : Window
         settings.PomodoroBreakMinutes = (int)Math.Round(PomodoroBreakMinutesSlider.Value);
         settings.PomodoroAutoStartBreak = PomodoroAutoStartBreakCheckBox.IsChecked == true;
         settings.PomodoroReturnToClockAfterBreak = PomodoroReturnToClockCheckBox.IsChecked == true;
+        settings.ShowPomodoroDailyStats = ShowPomodoroDailyStatsCheckBox.IsChecked == true;
         settings.PomodoroPlaySound = PomodoroPlaySoundCheckBox.IsChecked == true;
         settings.PomodoroSound = GetSelectedPomodoroSound();
         settings.Normalize();
@@ -213,6 +215,7 @@ public partial class SettingsWindow : Window
         PomodoroBreakMinutesSlider.IsEnabled = enabled;
         PomodoroAutoStartBreakCheckBox.IsEnabled = enabled;
         PomodoroReturnToClockCheckBox.IsEnabled = enabled;
+        ShowPomodoroDailyStatsCheckBox.IsEnabled = enabled;
         PomodoroPlaySoundCheckBox.IsEnabled = enabled;
         PomodoroSoundComboBox.IsEnabled = enabled;
         PomodoroSoundPreviewButton.IsEnabled = enabled;

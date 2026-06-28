@@ -49,6 +49,29 @@ public sealed class WidgetDisplayFormatterTests
     }
 
     [Fact]
+    public void BuildClockDisplay_WhenSideDateIsEnabled_FormatsDayAndMonth()
+    {
+        var formatter = new WidgetDisplayFormatter();
+        var settings = new WidgetSettings
+        {
+            ShowSideDate = true
+        };
+        var pomodoro = new PomodoroController(new ManualClock());
+        pomodoro.Reset(TimeSpan.FromMinutes(25));
+
+        var display = formatter.BuildClockDisplay(
+            new DateTime(2026, 6, 28, 9, 8, 7),
+            settings,
+            pomodoro,
+            TimeSpan.FromMinutes(25),
+            TimeSpan.FromMinutes(5));
+
+        Assert.True(display.ShowSideDate);
+        Assert.Equal("28", display.SideDateDayText);
+        Assert.Equal("06", display.SideDateMonthText);
+    }
+
+    [Fact]
     public void BuildClockDisplay_WhenPomodoroRuns_ShowsProgress()
     {
         var formatter = new WidgetDisplayFormatter();

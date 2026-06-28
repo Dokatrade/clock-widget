@@ -18,7 +18,14 @@ public sealed class WidgetSettingsTests
             BackgroundOpacity = -5,
             DateFontSize = 100,
             PomodoroFocusMinutes = 0,
-            PomodoroBreakMinutes = 500
+            PomodoroBreakMinutes = 500,
+            PomodoroDailyCount = -1,
+            PomodoroDailyFocusMinutes = -20,
+            PomodoroStatsHistory =
+            [
+                new PomodoroStatsEntry { Date = "2026-06-12", Count = -1, FocusMinutes = 25 },
+                new PomodoroStatsEntry { Date = "not-a-date", Count = 1, FocusMinutes = 25 }
+            ]
         };
 
         settings.Normalize();
@@ -35,6 +42,12 @@ public sealed class WidgetSettingsTests
         Assert.Equal(WidgetSettings.MaxDateFontSize, settings.DateFontSize);
         Assert.Equal(WidgetSettings.MinPomodoroFocusMinutes, settings.PomodoroFocusMinutes);
         Assert.Equal(WidgetSettings.MaxPomodoroBreakMinutes, settings.PomodoroBreakMinutes);
+        Assert.Equal(0, settings.PomodoroDailyCount);
+        Assert.Equal(0, settings.PomodoroDailyFocusMinutes);
+        Assert.Single(settings.PomodoroStatsHistory);
+        Assert.Equal("2026-06-12", settings.PomodoroStatsHistory[0].Date);
+        Assert.Equal(0, settings.PomodoroStatsHistory[0].Count);
+        Assert.Equal(25, settings.PomodoroStatsHistory[0].FocusMinutes);
     }
 
     [Fact]
@@ -88,6 +101,7 @@ public sealed class WidgetSettingsTests
             Width = 420,
             Height = 140,
             ShowSeconds = false,
+            ShowSideDate = true,
             ShowDate = false,
             LockPosition = true,
             StartWithWindows = true,
@@ -100,6 +114,7 @@ public sealed class WidgetSettingsTests
         Assert.Equal(420d, preset.Width);
         Assert.Equal(140d, preset.Height);
         Assert.False(preset.ShowSeconds);
+        Assert.True(preset.ShowSideDate);
         Assert.False(preset.ShowDate);
     }
 
@@ -126,6 +141,7 @@ public sealed class WidgetSettingsTests
             ClockFontSize = 44,
             BackgroundOpacity = 0.5,
             ShowSeconds = false,
+            ShowSideDate = true,
             ShowDate = false
         };
 
@@ -134,6 +150,7 @@ public sealed class WidgetSettingsTests
         Assert.Equal(44d, settings.ClockFontSize);
         Assert.Equal(0.5d, settings.BackgroundOpacity);
         Assert.False(settings.ShowSeconds);
+        Assert.True(settings.ShowSideDate);
         Assert.False(settings.ShowDate);
         Assert.False(settings.AlwaysOnTop);
         Assert.True(settings.LockPosition);
@@ -146,6 +163,76 @@ public sealed class WidgetSettingsTests
         Assert.False(settings.PomodoroReturnToClockAfterBreak);
         Assert.False(settings.PomodoroPlaySound);
         Assert.Equal(PomodoroSound.Harp, settings.PomodoroSound);
+    }
+
+    [Fact]
+    public void Clone_PreservesPomodoroDailyStats()
+    {
+        var settings = new WidgetSettings
+        {
+            ShowPomodoroDailyStats = true,
+            PomodoroDailyStatsDate = "2026-06-12",
+            PomodoroDailyCount = 4,
+            PomodoroDailyFocusMinutes = 100,
+            PomodoroStatsHistory =
+            [
+                new PomodoroStatsEntry { Date = "2026-06-11", Count = 2, FocusMinutes = 50 }
+            ]
+        };
+
+        var clone = settings.Clone();
+
+        Assert.True(clone.ShowPomodoroDailyStats);
+        Assert.Equal("2026-06-12", clone.PomodoroDailyStatsDate);
+        Assert.Equal(4, clone.PomodoroDailyCount);
+        Assert.Equal(100, clone.PomodoroDailyFocusMinutes);
+        Assert.Single(clone.PomodoroStatsHistory);
+        Assert.Equal("2026-06-11", clone.PomodoroStatsHistory[0].Date);
+        Assert.NotSame(settings.PomodoroStatsHistory[0], clone.PomodoroStatsHistory[0]);
+    }
+
+    [Fact]
+    public void Normalize_UsesDailyStatsAsAuthoritativeHistoryEntry()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroDailyStatsDate = "2026-06-12",
+            PomodoroDailyCount = 3,
+            PomodoroDailyFocusMinutes = 75,
+            PomodoroStatsHistory =
+            [
+                new PomodoroStatsEntry { Date = "2026-06-12", Count = 1, FocusMinutes = 25 }
+            ]
+        };
+
+        settings.Normalize();
+
+        Assert.Single(settings.PomodoroStatsHistory);
+        Assert.Equal(3, settings.PomodoroStatsHistory[0].Count);
+        Assert.Equal(75, settings.PomodoroStatsHistory[0].FocusMinutes);
+    }
+
+    [Fact]
+    public void ResetPomodoroStats_ClearsDailyStatsAndHistory()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroDailyStatsDate = "2026-06-12",
+            PomodoroDailyCount = 3,
+            PomodoroDailyFocusMinutes = 75,
+            PomodoroStatsHistory =
+            [
+                new PomodoroStatsEntry { Date = "2026-06-12", Count = 3, FocusMinutes = 75 },
+                new PomodoroStatsEntry { Date = "2026-06-13", Count = 1, FocusMinutes = 25 }
+            ]
+        };
+
+        settings.ResetPomodoroStats(new DateTime(2026, 6, 14));
+
+        Assert.Equal("2026-06-14", settings.PomodoroDailyStatsDate);
+        Assert.Equal(0, settings.PomodoroDailyCount);
+        Assert.Equal(0, settings.PomodoroDailyFocusMinutes);
+        Assert.Empty(settings.PomodoroStatsHistory);
     }
 
     [Fact]
