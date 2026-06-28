@@ -13,12 +13,14 @@ internal sealed class PomodoroController
     public PomodoroPhase Phase { get; private set; } = PomodoroPhase.Focus;
     public TimeSpan Remaining { get; private set; } = TimeSpan.Zero;
     public bool IsRunning { get; private set; }
+    public bool HasActiveSession { get; private set; }
 
     public void Reset(TimeSpan focusDuration)
     {
         Phase = PomodoroPhase.Focus;
         Remaining = focusDuration;
         IsRunning = false;
+        HasActiveSession = false;
         _endsAt = default;
     }
 
@@ -50,6 +52,7 @@ internal sealed class PomodoroController
 
         _endsAt = _clock.Now + Remaining;
         IsRunning = true;
+        HasActiveSession = true;
     }
 
     public PomodoroPhaseCompletion Update(TimeSpan breakDuration, bool autoStartBreak)

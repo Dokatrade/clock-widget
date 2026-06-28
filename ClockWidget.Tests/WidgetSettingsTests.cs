@@ -279,6 +279,55 @@ public sealed class WidgetSettingsTests
     }
 
     [Fact]
+    public void ResetPomodoroStats_ForTodayClearsOnlyToday()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroDailyStatsDate = "2026-06-14",
+            PomodoroDailyCount = 3,
+            PomodoroDailyFocusMinutes = 75,
+            PomodoroStatsHistory =
+            [
+                new PomodoroStatsEntry { Date = "2026-06-13", Count = 1, FocusMinutes = 25 },
+                new PomodoroStatsEntry { Date = "2026-06-14", Count = 3, FocusMinutes = 75 }
+            ]
+        };
+
+        settings.ResetPomodoroStats(new DateTime(2026, 6, 14), PomodoroStatsResetScope.Today);
+
+        Assert.Equal("2026-06-14", settings.PomodoroDailyStatsDate);
+        Assert.Equal(0, settings.PomodoroDailyCount);
+        Assert.Equal(0, settings.PomodoroDailyFocusMinutes);
+        var entry = Assert.Single(settings.PomodoroStatsHistory);
+        Assert.Equal("2026-06-13", entry.Date);
+    }
+
+    [Fact]
+    public void ResetPomodoroStats_ForWeekClearsCurrentWeekFromMonday()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroDailyStatsDate = "2026-06-17",
+            PomodoroDailyCount = 4,
+            PomodoroDailyFocusMinutes = 100,
+            PomodoroStatsHistory =
+            [
+                new PomodoroStatsEntry { Date = "2026-06-14", Count = 1, FocusMinutes = 25 },
+                new PomodoroStatsEntry { Date = "2026-06-15", Count = 2, FocusMinutes = 50 },
+                new PomodoroStatsEntry { Date = "2026-06-17", Count = 4, FocusMinutes = 100 }
+            ]
+        };
+
+        settings.ResetPomodoroStats(new DateTime(2026, 6, 17), PomodoroStatsResetScope.Week);
+
+        Assert.Equal("2026-06-17", settings.PomodoroDailyStatsDate);
+        Assert.Equal(0, settings.PomodoroDailyCount);
+        Assert.Equal(0, settings.PomodoroDailyFocusMinutes);
+        var entry = Assert.Single(settings.PomodoroStatsHistory);
+        Assert.Equal("2026-06-14", entry.Date);
+    }
+
+    [Fact]
     public void CreateBuiltInPresets_ReturnsFreshNormalizedVisualPresets()
     {
         var presets = WidgetSettings.CreateBuiltInPresets();

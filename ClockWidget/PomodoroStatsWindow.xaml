@@ -147,6 +147,30 @@
         </Setter.Value>
       </Setter>
     </Style>
+
+    <Style x:Key="ActivityNavButtonStyle"
+           TargetType="Button"
+           BasedOn="{StaticResource DialogButtonStyle}">
+      <Setter Property="Width"
+              Value="34" />
+      <Setter Property="MinWidth"
+              Value="34" />
+      <Setter Property="Padding"
+              Value="0" />
+      <Setter Property="FontSize"
+              Value="18" />
+      <Setter Property="FontWeight"
+              Value="SemiBold" />
+      <Style.Triggers>
+        <Trigger Property="IsEnabled"
+                 Value="False">
+          <Setter Property="Opacity"
+                  Value="0.45" />
+          <Setter Property="Cursor"
+                  Value="Arrow" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
   </Window.Resources>
 
   <DockPanel Margin="20">
@@ -164,7 +188,7 @@
                 Style="{StaticResource DialogButtonStyle}"
                 Foreground="#B42318"
                 BorderBrush="#FDA29B"
-                ToolTip="Clear all saved Pomodoro statistics"
+                ToolTip="Choose which saved Pomodoro statistics to clear"
                 Click="ResetStatsButton_Click" />
         <Button Width="86"
                 Content="Close"
@@ -304,44 +328,6 @@
 
         <Border Style="{StaticResource SectionCardStyle}">
           <StackPanel>
-            <TextBlock Text="Current Timer"
-                       Style="{StaticResource SectionTitleStyle}" />
-            <Grid>
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-              </Grid.ColumnDefinitions>
-              <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-              </Grid.RowDefinitions>
-
-              <TextBlock Text="Phase"
-                         Style="{StaticResource MetricLabelStyle}" />
-              <TextBlock x:Name="PhaseText"
-                         Grid.Row="1"
-                         Margin="0,4,12,0"
-                         FontSize="20"
-                         FontWeight="SemiBold" />
-
-              <TextBlock Grid.Column="1"
-                         Text="Remaining"
-                         Style="{StaticResource MetricLabelStyle}" />
-              <TextBlock x:Name="RemainingText"
-                         Grid.Row="1"
-                         Grid.Column="1"
-                         Margin="0,4,0,0"
-                         FontSize="20"
-                         FontWeight="SemiBold" />
-            </Grid>
-            <TextBlock x:Name="RunningStateText"
-                       Style="{StaticResource MutedTextStyle}"
-                       Margin="0,12,0,0" />
-          </StackPanel>
-        </Border>
-
-        <Border Style="{StaticResource SectionCardStyle}">
-          <StackPanel>
             <TextBlock Text="Activity"
                        Style="{StaticResource SectionTitleStyle}" />
             <Border Background="#F8FAFC"
@@ -350,11 +336,36 @@
                     CornerRadius="8"
                     Padding="16">
               <StackPanel>
-                <TextBlock Text="Last 120 days"
-                           Foreground="{StaticResource WindowTextBrush}"
-                           FontSize="15"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,12" />
+                <DockPanel Margin="0,0,0,12"
+                           LastChildFill="True">
+                  <StackPanel Orientation="Horizontal"
+                              DockPanel.Dock="Right"
+                              HorizontalAlignment="Right">
+                    <Button Content="&lt;"
+                            Style="{StaticResource ActivityNavButtonStyle}"
+                            ToolTip="Show older activity"
+                            Click="ActivityPreviousButton_Click" />
+                    <Button x:Name="ActivityNextButton"
+                            Content=">"
+                            Style="{StaticResource ActivityNavButtonStyle}"
+                            Margin="6,0,0,0"
+                            ToolTip="Show newer activity"
+                            Click="ActivityNextButton_Click" />
+                    <Button x:Name="ActivityTodayButton"
+                            Content="Today"
+                            Style="{StaticResource DialogButtonStyle}"
+                            MinWidth="64"
+                            Margin="6,0,0,0"
+                            ToolTip="Return to the latest 120 days"
+                            Click="ActivityTodayButton_Click" />
+                  </StackPanel>
+                  <TextBlock x:Name="ActivityRangeText"
+                             Text="Last 120 days"
+                             Foreground="{StaticResource WindowTextBrush}"
+                             FontSize="15"
+                             FontWeight="SemiBold"
+                             VerticalAlignment="Center" />
+                </DockPanel>
                 <Grid x:Name="RecentActivityGrid" />
 
                 <DockPanel Margin="0,12,0,0"

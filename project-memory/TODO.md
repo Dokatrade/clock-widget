@@ -2,13 +2,15 @@
 
 ## Now
 - [ ] Include new files when committing: `ClockWidget/SettingsPresetCatalog.cs`, `ClockWidget/WindowPlacementGeometry.cs`, `ClockWidget.Tests/SettingsPresetCatalogTests.cs`, `ClockWidget.Tests/WindowPlacementGeometryTests.cs`, `ClockWidget/PomodoroStatsWindow.xaml`, `ClockWidget/PomodoroStatsWindow.xaml.cs`, `ClockWidget/PomodoroStatsCalculator.cs`, `ClockWidget.Tests/PomodoroStatsCalculatorTests.cs`.
-- [ ] Verify `Pomodoro Stats` context-menu dialog on Windows: opens centered over the widget, shows today/week/month/year count/minutes, current phase/remaining time, last-120-days heatmap, 12-month bar chart, and closes cleanly.
-- [ ] Verify `Pomodoro Stats` reset on Windows: button asks for confirmation, `No` keeps data, `Yes` clears today/week/month/year/activity stats, updates widget daily stats if visible, and persists after restart.
+- [ ] Verify `Pomodoro Stats` context-menu dialog on Windows: opens centered over the widget, shows today/week/month/year count/minutes, last-120-days heatmap, 12-month bar chart, and closes cleanly.
+- [ ] Verify `Pomodoro Stats` reset choices on Windows: button opens `All stats` / `Today` / `This week`, each choice asks for confirmation, `No` keeps data, `Yes` clears only the selected scope, updates widget daily stats if visible, and persists after restart.
+- [ ] Verify `Pomodoro Stats` Activity navigation on Windows: back/forward buttons scroll the 120-day heatmap by 30 days, `Today` returns to the latest range, forward/Today are disabled at the latest range, and older ranges show concrete dates even if they have no stats.
 - [ ] Verify `Pomodoro Stats` monthly focus chart on Windows: each month with data shows Pomodoro count above the bar and layout remains readable.
 - [ ] Verify focused-widget `Space` shortcut on Windows: click/focus the widget while Pomodoro is visible, Space toggles start/pause only while the mouse is over the widget, and Space does nothing in normal clock mode.
 - [ ] Verify Pomodoro long-break settings on Windows: Settings shows "use long break every N Pomodoro" and long-break duration controls, Apply/OK persists them, and every configured Nth completed Pomodoro starts the long break.
 - [ ] Verify daily Pomodoro stats on Windows: disabled by default, Settings toggle works, stats show only in Pomodoro mode, hover tooltips are clear, focus completion increments count/minutes, and stats reset on a new local date.
 - [ ] Verify side date on Windows: disabled by default, `Show side date` context-menu toggle works and persists, `Alt+left click` toggles it only in clock mode, day/month render as `dd` over `MM`, the block appears only in clock mode, and the right edge stays stable when toggled.
+- [ ] Verify locked Clock/Pomodoro switching on Windows: enable `Lock position`, switch Clock/Pomodoro repeatedly, and confirm it anchors/moves the same way as when lock is disabled.
 - [ ] Verify custom tray menu on Windows after outside-click fix: right-click tray icon opens the larger WPF menu near the cursor, checked/disabled states update, commands work, clicking empty Windows desktop/screen space closes it, and Show/Hide still does not save settings.
 - [ ] Verify latest Settings changes on Windows: refreshed design renders correctly, tabs render correctly, built-in/custom/custom override labels are clear, built-in presets load, custom overrides can be reset, `Apply` enables/disables correctly, and Apply/OK/Cancel semantics still hold.
 - [ ] Verify user-triggered Settings import/export on Windows.
@@ -35,9 +37,15 @@
 - [x] Added larger custom WPF tray menu and enlarged the widget WPF context menu.
 - [x] Hardened custom WPF tray menu dismissal by foreground-activating it and closing it on outside captured mouse clicks.
 - [x] Added `Reset stats` button to `Pomodoro Stats` with confirmation, one explicit settings save, and immediate stats/widget refresh.
+- [x] Added reset scope choices to `Pomodoro Stats`: all stats, today, and current week.
 - [x] Added monthly Pomodoro count labels above the `Monthly focus` bars in `Pomodoro Stats`.
+- [x] Added previous/next navigation and a `Today` return button to the `Pomodoro Stats` Activity heatmap.
+- [x] Removed the duplicate `Current Timer` block from `Pomodoro Stats`.
 - [x] Added focused-widget `Space` shortcut for Pomodoro start/pause, active only while Pomodoro display is visible and the mouse is over the widget.
 - [x] Added configurable Pomodoro long breaks: Settings controls for interval and long-break duration, persisted fields, normalization/tests, and runtime break selection on every configured Nth completed focus session.
+- [x] Fixed locked-widget Clock/Pomodoro anchoring so locked and unlocked switching use the same right-edge preservation.
+- [x] Stabilized the main clock/Pomodoro time text width so digit changes do not resize the widget every tick.
+- [x] Prevented app close and Pomodoro stats saves from overwriting saved coordinates with temporary Pomodoro-mode geometry.
 - [x] Regenerated app icon assets from the user's supplied light rounded-square bright blue ring image.
 - [x] Regenerated app icon assets from the user's supplied gray rounded-square blue ring image.
 - [x] Regenerated app icon assets from the user's supplied white rounded-square clock image.

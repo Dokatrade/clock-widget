@@ -94,6 +94,28 @@ public sealed class WidgetDisplayFormatterTests
     }
 
     [Fact]
+    public void BuildClockDisplay_WhenPomodoroIsPaused_ShowsFrozenProgress()
+    {
+        var formatter = new WidgetDisplayFormatter();
+        var clock = new ManualClock();
+        var pomodoro = new PomodoroController(clock);
+        pomodoro.Reset(TimeSpan.FromMinutes(25));
+        pomodoro.ToggleStartPause(TimeSpan.FromMinutes(25), TimeSpan.FromMinutes(5));
+        clock.Advance(TimeSpan.FromMinutes(5));
+        pomodoro.ToggleStartPause(TimeSpan.FromMinutes(25), TimeSpan.FromMinutes(5));
+
+        var display = formatter.BuildClockDisplay(
+            clock.Now,
+            new WidgetSettings { PomodoroEnabled = true },
+            pomodoro,
+            TimeSpan.FromMinutes(25),
+            TimeSpan.FromMinutes(5));
+
+        Assert.True(display.Progress.IsVisible);
+        Assert.InRange(display.Progress.Ratio, 0.199999, 0.200001);
+    }
+
+    [Fact]
     public void BuildPomodoroDisplay_ForBreak_UsesBreakTextColorAndGreenProgress()
     {
         var formatter = new WidgetDisplayFormatter();

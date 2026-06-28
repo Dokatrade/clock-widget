@@ -11,6 +11,7 @@ namespace ClockWidget;
 public partial class PomodoroStatsWindow : Window
 {
     private const int RecentActivityDays = 120;
+    private const int ActivityScrollDays = 30;
     private const double ActivityCellSize = 20;
     private const double ActivityCellGap = 6;
     private const double ActivityColumnWidth = ActivityCellSize + ActivityCellGap;
@@ -24,17 +25,15 @@ public partial class PomodoroStatsWindow : Window
     private static readonly MediaBrush ActivityTextBrush = CreateFrozenBrush(MediaColor.FromRgb(102, 112, 133));
     private static readonly MediaBrush ActivityBorderBrush = CreateFrozenBrush(MediaColor.FromRgb(215, 222, 232));
     private readonly WidgetSettings _settings;
-    private readonly PomodoroController _controller;
-    private readonly Action _resetStats;
+    private readonly Action<PomodoroStatsResetScope> _resetStats;
+    private DateTime? _recentActivityEndDate;
 
     internal PomodoroStatsWindow(
         WidgetSettings settings,
-        PomodoroController controller,
-        Action resetStats)
+        Action<PomodoroStatsResetScope> resetStats)
     {
         InitializeComponent();
         _settings = settings;
-        _controller = controller;
         _resetStats = resetStats;
         LoadStats();
     }
@@ -49,9 +48,6 @@ public partial class PomodoroStatsWindow : Window
         LoadPeriod(MonthPomodoroCountText, MonthFocusMinutesText, stats.Month);
         LoadPeriod(YearPomodoroCountText, YearFocusMinutesText, stats.Year);
         LoadActivity(_settings, today);
-        PhaseText.Text = _controller.Phase == PomodoroPhase.Focus ? "Focus" : "Break";
-        RemainingText.Text = FormatDuration(_controller.Remaining);
-        RunningStateText.Text = _controller.IsRunning ? "Timer is running." : "Timer is paused.";
     }
 
     private static void LoadPeriod(
@@ -70,19 +66,35 @@ public partial class PomodoroStatsWindow : Window
         var values = normalizedSettings.PomodoroStatsHistory
             .ToDictionary(entry => entry.Date, entry => entry, StringComparer.Ordinal);
 
-        LoadRecentActivity(values, today.Date);
+        var latestEndDate = today.Date;
+        if (_recentActivityEndDate is null || _recentActivityEndDate.Value > latestEndDate)
+        {
+            _recentActivityEndDate = latestEndDate;
+        }
+
+        LoadRecentActivity(values, _recentActivityEndDate.Value, latestEndDate);
         LoadMonthlyBars(values, today.Date);
     }
 
-    private void LoadRecentActivity(IReadOnlyDictionary<string, PomodoroStatsEntry> values, DateTime today)
+    private void LoadRecentActivity(
+        IReadOnlyDictionary<string, PomodoroStatsEntry> values,
+        DateTime dataEndDate,
+        DateTime latestEndDate)
     {
         RecentActivityGrid.Children.Clear();
         RecentActivityGrid.ColumnDefinitions.Clear();
         RecentActivityGrid.RowDefinitions.Clear();
 
-        var dataEndDate = today.Date;
-        var displayEndDate = new DateTime(dataEndDate.Year, dataEndDate.Month, 1).AddMonths(1).AddDays(-1);
+        dataEndDate = dataEndDate.Date;
+        latestEndDate = latestEndDate.Date;
+        var isLatestRange = dataEndDate >= latestEndDate;
+        var displayEndDate = isLatestRange
+            ? new DateTime(dataEndDate.Year, dataEndDate.Month, 1).AddMonths(1).AddDays(-1)
+            : dataEndDate;
         var startDate = dataEndDate.AddDays(-(RecentActivityDays - 1));
+        ActivityRangeText.Text = FormatActivityRange(startDate, dataEndDate, isLatestRange);
+        ActivityNextButton.IsEnabled = !isLatestRange;
+        ActivityTodayButton.IsEnabled = !isLatestRange;
 
         RecentActivityGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         for (var day = 0; day < 7; day++)
@@ -289,14 +301,22 @@ public partial class PomodoroStatsWindow : Window
 
     private static bool IsDateInPeriod(string dateText, DateTime start, DateTime end)
     {
+        var date = ParseStatsDate(dateText);
+        return date is not null
+            && date >= start
+            && date < end;
+    }
+
+    private static DateTime? ParseStatsDate(string dateText)
+    {
         return DateTime.TryParseExact(
             dateText,
             "yyyy-MM-dd",
             CultureInfo.InvariantCulture,
             DateTimeStyles.None,
             out var date)
-            && date >= start
-            && date < end;
+            ? date
+            : null;
     }
 
     private static MediaBrush GetActivityBrush(int focusMinutes)
@@ -324,16 +344,38 @@ public partial class PomodoroStatsWindow : Window
         return brush;
     }
 
-    private static string FormatDuration(TimeSpan duration)
+    private static string FormatActivityRange(DateTime startDate, DateTime endDate, bool isLatestRange)
     {
-        if (duration < TimeSpan.Zero)
+        if (isLatestRange)
         {
-            duration = TimeSpan.Zero;
+            return "Last 120 days";
         }
 
-        return duration.TotalHours >= 1
-            ? $"{(int)duration.TotalHours:0}:{duration.Minutes:00}:{duration.Seconds:00}"
-            : $"{duration.Minutes:0}:{duration.Seconds:00}";
+        return startDate.Year == endDate.Year
+            ? string.Format(CultureInfo.InvariantCulture, "{0:MMM d} - {1:MMM d, yyyy}", startDate, endDate)
+            : string.Format(CultureInfo.InvariantCulture, "{0:MMM d, yyyy} - {1:MMM d, yyyy}", startDate, endDate);
+    }
+
+    private void ActivityPreviousButton_Click(object sender, RoutedEventArgs e)
+    {
+        var today = DateTime.Now.Date;
+        _recentActivityEndDate = (_recentActivityEndDate ?? today).AddDays(-ActivityScrollDays);
+        LoadActivity(_settings, today);
+    }
+
+    private void ActivityNextButton_Click(object sender, RoutedEventArgs e)
+    {
+        var today = DateTime.Now.Date;
+        var nextEndDate = (_recentActivityEndDate ?? today).AddDays(ActivityScrollDays);
+        _recentActivityEndDate = nextEndDate > today ? today : nextEndDate;
+        LoadActivity(_settings, today);
+    }
+
+    private void ActivityTodayButton_Click(object sender, RoutedEventArgs e)
+    {
+        var today = DateTime.Now.Date;
+        _recentActivityEndDate = today;
+        LoadActivity(_settings, today);
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
@@ -343,9 +385,39 @@ public partial class PomodoroStatsWindow : Window
 
     private void ResetStatsButton_Click(object sender, RoutedEventArgs e)
     {
+        if (sender is not System.Windows.Controls.Button button)
+        {
+            return;
+        }
+
+        var menu = new System.Windows.Controls.ContextMenu
+        {
+            PlacementTarget = button,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Top
+        };
+
+        AddResetMenuItem(menu, "All stats", PomodoroStatsResetScope.All);
+        AddResetMenuItem(menu, "Today", PomodoroStatsResetScope.Today);
+        AddResetMenuItem(menu, "This week", PomodoroStatsResetScope.Week);
+
+        menu.IsOpen = true;
+    }
+
+    private void AddResetMenuItem(System.Windows.Controls.ContextMenu menu, string header, PomodoroStatsResetScope scope)
+    {
+        var item = new System.Windows.Controls.MenuItem
+        {
+            Header = header
+        };
+        item.Click += (_, _) => ConfirmAndResetStats(scope);
+        menu.Items.Add(item);
+    }
+
+    private void ConfirmAndResetStats(PomodoroStatsResetScope scope)
+    {
         var result = WpfMessageBox.Show(
             this,
-            "Reset all Pomodoro statistics? This cannot be undone.",
+            $"Reset {FormatResetScope(scope)} Pomodoro statistics? This cannot be undone.",
             "Reset Pomodoro Stats",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning,
@@ -356,8 +428,18 @@ public partial class PomodoroStatsWindow : Window
             return;
         }
 
-        _resetStats();
+        _resetStats(scope);
         LoadStats();
+    }
+
+    private static string FormatResetScope(PomodoroStatsResetScope scope)
+    {
+        return scope switch
+        {
+            PomodoroStatsResetScope.Today => "today's",
+            PomodoroStatsResetScope.Week => "this week's",
+            _ => "all"
+        };
     }
 
     private sealed record MonthlyActivity(DateTime MonthStart, int Count, int FocusMinutes);

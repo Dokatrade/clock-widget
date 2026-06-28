@@ -297,12 +297,45 @@ public sealed class WidgetSettings
         PomodoroStatsHistory = NormalizePomodoroStatsHistory(PomodoroStatsHistory);
     }
 
-    public void ResetPomodoroStats(DateTime now)
+    public void ResetPomodoroStats(DateTime now, PomodoroStatsResetScope scope = PomodoroStatsResetScope.All)
     {
-        PomodoroDailyStatsDate = now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        PomodoroDailyCount = 0;
-        PomodoroDailyFocusMinutes = 0;
-        PomodoroStatsHistory = [];
+        var today = now.Date;
+        if (scope == PomodoroStatsResetScope.All)
+        {
+            PomodoroDailyStatsDate = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            PomodoroDailyCount = 0;
+            PomodoroDailyFocusMinutes = 0;
+            PomodoroStatsHistory = [];
+            return;
+        }
+
+        PomodoroStatsHistory = NormalizePomodoroStatsHistory(PomodoroStatsHistory);
+        UpsertPomodoroStatsHistoryEntry(
+            PomodoroDailyStatsDate,
+            PomodoroDailyCount,
+            PomodoroDailyFocusMinutes);
+
+        var startDate = scope == PomodoroStatsResetScope.Week
+            ? GetWeekStart(today)
+            : today;
+        var endDate = today;
+
+        PomodoroStatsHistory = PomodoroStatsHistory
+            .Where(entry =>
+            {
+                var entryDate = ParseStatsDate(entry.Date);
+                return entryDate is null || entryDate < startDate || entryDate > endDate;
+            })
+            .ToList();
+
+        var dailyDate = ParseStatsDate(PomodoroDailyStatsDate);
+        if (dailyDate is not null && dailyDate >= startDate && dailyDate <= endDate)
+        {
+            PomodoroDailyCount = 0;
+            PomodoroDailyFocusMinutes = 0;
+        }
+
+        PomodoroDailyStatsDate = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     }
 
     public WidgetPreset CreatePreset(string name)
@@ -398,15 +431,35 @@ public sealed class WidgetSettings
 
     private static string NormalizeStatsDate(string? date)
     {
+        return ParseStatsDate(date) is { } statsDate
+            ? statsDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : "";
+    }
+
+    private static DateTime? ParseStatsDate(string? date)
+    {
         return DateTime.TryParseExact(
             date,
             "yyyy-MM-dd",
             CultureInfo.InvariantCulture,
             DateTimeStyles.None,
             out var parsed)
-            ? parsed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-            : "";
+            ? parsed.Date
+            : null;
     }
+
+    private static DateTime GetWeekStart(DateTime date)
+    {
+        var daysFromMonday = ((int)date.DayOfWeek + 6) % 7;
+        return date.Date.AddDays(-daysFromMonday);
+    }
+}
+
+public enum PomodoroStatsResetScope
+{
+    All,
+    Today,
+    Week
 }
 
 public sealed class PomodoroStatsEntry

@@ -13,6 +13,7 @@ public sealed class PomodoroControllerTests
         Assert.Equal(PomodoroPhase.Focus, controller.Phase);
         Assert.Equal(TimeSpan.FromMinutes(25), controller.Remaining);
         Assert.False(controller.IsRunning);
+        Assert.False(controller.HasActiveSession);
     }
 
     [Fact]
@@ -27,6 +28,7 @@ public sealed class PomodoroControllerTests
         controller.ToggleStartPause(TimeSpan.FromMinutes(25), TimeSpan.FromMinutes(5));
 
         Assert.False(controller.IsRunning);
+        Assert.True(controller.HasActiveSession);
         Assert.Equal(TimeSpan.FromMinutes(22), controller.Remaining);
     }
 

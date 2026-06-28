@@ -6,9 +6,10 @@
 - Pomodoro mode can optionally show daily stats on the widget: today's completed Pomodoro count and today's focus minutes as two green right-side numbers with tooltips.
 - Pomodoro settings now support a long-break cycle: regular break minutes, "use long break every N Pomodoro", and long break minutes. Default is every 4 Pomodoro, 15 minutes. The break after the N-th completed focus uses the long duration.
 - Clock mode can optionally show a right-side compact date block with day over month (`dd` / `MM`), toggled from the widget context menu. It is hidden in Pomodoro mode.
-- Widget context menu has `Pomodoro Stats`, which opens a dedicated stats dialog with today/week/month/year aggregates, current timer details, and a hybrid activity block.
-- `Pomodoro Stats` has a `Reset stats` button with confirmation. It clears all Pomodoro stats, saves settings once, and refreshes the stats window/widget display.
+- Widget context menu has `Pomodoro Stats`, which opens a dedicated stats dialog with today/week/month/year aggregates and a hybrid activity block.
+- `Pomodoro Stats` has a `Reset stats` button that opens a choice for `All stats`, `Today`, or `This week`, then asks for confirmation. It saves settings once and refreshes the stats window/widget display.
 - `Pomodoro Stats` monthly focus chart shows the monthly Pomodoro count above each bar.
+- `Pomodoro Stats` Activity heatmap has previous/next navigation plus a `Today` return button in the "Last 120 days" header. It scrolls the 120-day calendar by 30 days, allows older empty ranges, disables forward/Today at the latest range, and keeps the state in the open window only.
 - The main widget accepts `Space` as a focused-window Pomodoro start/pause shortcut only while Pomodoro display is visible and the mouse is over the widget.
 - Settings are stored in `%APPDATA%\ClockWidget\settings.json`.
 - Settings load/save logic is in `ClockWidget/SettingsStore.cs`.
@@ -23,6 +24,9 @@
 - Tray right-click uses a custom WPF menu window (`TrayMenuWindow`) with larger text instead of native WinForms `ContextMenuStrip`.
 - Window placement/snap/keep-on-screen logic is in `ClockWidget/WindowPlacementService.cs`.
 - Testable placement math is in `ClockWidget/WindowPlacementGeometry.cs`.
+- `Lock position` prevents drag movement and suppresses automatic `SizeChanged` keep-on-screen clamping, but Clock/Pomodoro display changes still preserve the right edge the same way as unlocked mode.
+- Main time text uses tabular numerals plus a tightened font-size-based minimum width so Pomodoro/clock digits do not resize the widget every tick without making the widget wider than necessary.
+- App closing and Pomodoro stats saves persist settings without overwriting saved window coordinates; explicit move/layout actions still save position.
 - Pomodoro UI/session command logic is in `ClockWidget/PomodoroSession.cs`, backed by `PomodoroController`.
 - Pomodoro stats are stored in `WidgetSettings`: current-day compatibility fields plus `PomodoroStatsHistory` daily entries. Stats increment in `MainWindow` only when a focus phase completes; current-day values reset by local `yyyy-MM-dd` date and are not updated by periodic disk writes.
 - Built-in visual presets are created by `WidgetSettings.CreateBuiltInPresets()`.
@@ -69,7 +73,7 @@
 - `project-memory/TODO.md` uses `Now` / `Next` / `Later` / `Done`.
 - `project-memory/docs/decisions.md` is a dated decision log.
 - Extracted Pomodoro state transitions from `MainWindow.xaml.cs` into `PomodoroController`.
-- Raised the date closer to the time in `MainWindow.xaml` by changing `DateText` top margin from `2` to `-2`.
+- Raised the date closer to the time in `MainWindow.xaml`; latest value is `DateText` top margin `-8`.
 - Extracted startup setting read/apply try/catch logic from `MainWindow.xaml.cs` into `StartupSettingsService`.
 - Extracted display timer start/stop and adaptive next-tick scheduling from `MainWindow.xaml.cs` into `DisplayTickScheduler`.
 - Replaced repeated display text/break-progress brush allocations with frozen reusable brushes.
@@ -109,19 +113,27 @@
 - Added optional side date in clock mode: context-menu `Show side date` toggle, right-side day/month numeric display, hidden in Pomodoro mode.
 - Replaced native tray `ContextMenuStrip` with a custom WPF tray menu window using larger rows/text, and enlarged the widget's WPF context menu styles.
 - Hardened custom tray menu dismissal: the WPF tray menu now explicitly moves itself to the foreground and captures outside mouse clicks so clicking empty Windows desktop/screen space should close it reliably.
-- Added `Reset stats` to `Pomodoro Stats`; it clears daily/current fields plus stats history and updates the displayed stats immediately.
+- Added `Reset stats` to `Pomodoro Stats`; it offers `All stats`, `Today`, and `This week`, clears the selected scope, and updates the displayed stats immediately.
 - Added Pomodoro count labels above each `Monthly focus` bar in `Pomodoro Stats`.
+- Added previous/next navigation plus a `Today` return button for the `Pomodoro Stats` Activity heatmap. The latest range remains labeled `Last 120 days`; older ranges show explicit start/end dates.
+- Removed the `Current Timer` block from `Pomodoro Stats` so the dialog focuses on saved statistics instead of duplicating the main widget timer.
 - Added focused-widget `Space` shortcut for Pomodoro start/pause. It does not run globally and only triggers when Pomodoro is visible and the mouse is over the widget.
 - Added configurable Pomodoro long breaks in Settings: interval in completed Pomodoro sessions plus long-break duration. Runtime chooses the long break for every configured multiple of completed focus sessions.
+- Fixed locked-widget Clock/Pomodoro anchoring: while `Lock position` is enabled, `SizeChanged` no longer schedules keep-on-screen movement, but explicit display transitions still preserve the right edge just like unlocked mode.
+- Stabilized the main time text width with tabular numerals and a calculated minimum width for clock/Pomodoro displays.
+- Tightened the clock layout: `DateText` top margin is now `-8`, and stable time width factors were reduced to make the widget narrower.
+- Changed app close and Pomodoro stats saves to avoid overwriting saved coordinates with temporary Pomodoro-mode window geometry.
 
 ## Next Focus
 - Next candidate: run `dotnet test .\ClockWidget.sln` on Windows after the latest Settings/preset/import/export/activation changes.
-- Manually verify the new `Pomodoro Stats` context-menu dialog opens, is centered over the widget, shows current stats correctly, and closes cleanly.
-- Manually verify `Pomodoro Stats` reset: button asks for confirmation, `No` keeps data, `Yes` clears today/week/month/year/activity stats, updates the widget daily stats if visible, and persists after restart.
+- Manually verify the new `Pomodoro Stats` context-menu dialog opens, is centered over the widget, shows today/week/month/year stats and activity correctly, and closes cleanly.
+- Manually verify `Pomodoro Stats` reset choices: button opens `All stats` / `Today` / `This week`, each choice asks for confirmation, `No` keeps data, `Yes` clears only the selected scope, updates the widget daily stats if visible, and persists after restart.
+- Manually verify `Pomodoro Stats` Activity navigation: back/forward buttons scroll the heatmap by 30 days, `Today` returns to the latest range, forward/Today are disabled at the latest range, and older ranges show concrete dates even if they have no stats.
 - Manually verify focused-widget `Space` shortcut on Windows: click/focus the widget while Pomodoro is visible, Space toggles start/pause only while the mouse is over the widget, and Space does nothing in normal clock mode.
 - Manually verify Pomodoro long-break settings on Windows: Settings shows the interval/duration sliders, Apply/OK persists them, and the break after every configured Nth Pomodoro uses the long duration.
 - Manually verify daily Pomodoro stats display: disabled by default, enabled through Settings, visible only in Pomodoro mode, tooltips appear on hover, focus completion increments count/minutes, and counts reset on a new local date.
 - Manually verify side date display: disabled by default, context-menu toggle persists, shows day over month in clock mode, hides in Pomodoro mode, and right-edge position is preserved when toggling.
+- Manually verify locked Clock/Pomodoro switching on Windows: enable `Lock position`, switch Clock/Pomodoro repeatedly, and confirm it anchors/moves the same way as when lock is disabled.
 - Manually verify custom tray menu on Windows after the outside-click fix: right-click opens near the tray icon/cursor, text is larger, checked/disabled states update, commands work, clicking empty Windows desktop/screen space closes it, and Show/Hide still does not save settings.
 - Manually verify refreshed Settings window layout, tabs, preset labels/override reset, Apply dirty-state, import/export, second-launch activation, and snap/reset positioning after the next publish/run.
 - Continue shrinking `MainWindow.xaml.cs` only when another clear responsibility boundary appears.

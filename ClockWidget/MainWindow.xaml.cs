@@ -34,7 +34,7 @@ public partial class MainWindow : Window
         {
             _tickScheduler.Stop();
             _trayIcon?.Dispose();
-            SaveSettings();
+            SaveSettings(updatePosition: false);
         };
     }
 
@@ -48,9 +48,17 @@ public partial class MainWindow : Window
         ApplySettings();
 
         InitializeTrayIcon();
-        SizeChanged += (_, _) => ScheduleEnsureWindowOnScreen();
+        SizeChanged += MainWindow_SizeChanged;
         UpdateDisplayAndScheduleNextTick();
         _tickScheduler.Start();
+    }
+
+    private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (!_settings.LockPosition)
+        {
+            ScheduleEnsureWindowOnScreen();
+        }
     }
 
     private void Root_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -114,7 +122,7 @@ public partial class MainWindow : Window
     private void ShowSecondsMenuItem_Click(object sender, RoutedEventArgs e)
     {
         _settings.ShowSeconds = ShowSecondsMenuItem.IsChecked;
-        UpdateDisplayAndScheduleNextTick();
+        UpdateDisplayPreservingRightEdge();
         SaveSettings();
     }
 
@@ -278,6 +286,7 @@ public partial class MainWindow : Window
         TimeText.FontSize = _settings.ClockFontSize;
         TimeText.FontWeight = FontWeight.FromOpenTypeWeight(_settings.ClockFontWeight);
         TimeText.LineHeight = _settings.ClockFontSize;
+        TimeText.MinWidth = GetStableTimeTextMinWidth();
         DateText.FontSize = _settings.DateFontSize;
         DateText.Visibility = _settings.ShowDate ? Visibility.Visible : Visibility.Collapsed;
         var statsFontSize = Math.Clamp(_settings.ClockFontSize * 0.38, 16, 34);
@@ -290,6 +299,30 @@ public partial class MainWindow : Window
         ClockSideDateMonthText.FontSize = sideDateFontSize;
         ClockSideDateDayText.LineHeight = sideDateLineHeight;
         ClockSideDateMonthText.LineHeight = sideDateLineHeight;
+    }
+
+    private double GetStableTimeTextMinWidth()
+    {
+        const double MinuteTextWidthFactor = 2.65;
+        const double HourPomodoroTextWidthFactor = 3.25;
+        const double ClockWithSecondsTextWidthFactor = 3.9;
+
+        var widthFactor = _settings.ShowSeconds
+            ? ClockWithSecondsTextWidthFactor
+            : MinuteTextWidthFactor;
+
+        if (_settings.PomodoroEnabled)
+        {
+            var longestPomodoroMinutes = Math.Max(
+                _settings.PomodoroFocusMinutes,
+                Math.Max(_settings.PomodoroBreakMinutes, _settings.PomodoroLongBreakMinutes));
+            var pomodoroWidthFactor = longestPomodoroMinutes >= 60
+                ? HourPomodoroTextWidthFactor
+                : MinuteTextWidthFactor;
+            widthFactor = Math.Max(widthFactor, pomodoroWidthFactor);
+        }
+
+        return Math.Ceiling(_settings.ClockFontSize * widthFactor);
     }
 
     private void UpdateDisplay()
@@ -315,7 +348,8 @@ public partial class MainWindow : Window
 
         UpdatePomodoroMenuState();
 
-        if (displayModeBeforeUpdate != _pomodoroSession.DisplayMode && canPreserveRightEdge)
+        if (displayModeBeforeUpdate != _pomodoroSession.DisplayMode
+            && canPreserveRightEdge)
         {
             RestoreRightEdge(right);
         }
@@ -510,7 +544,7 @@ public partial class MainWindow : Window
             _settings.PomodoroDailyStatsDate,
             _settings.PomodoroDailyCount,
             _settings.PomodoroDailyFocusMinutes);
-        SaveSettings();
+        SaveSettings(updatePosition: false);
     }
 
     private void ResetPomodoroDailyStatsIfNeeded(DateTime now)
@@ -541,7 +575,6 @@ public partial class MainWindow : Window
 
         var statsWindow = new PomodoroStatsWindow(
             _settings,
-            _pomodoroSession.Controller,
             ResetPomodoroStats)
         {
             Owner = this
@@ -550,10 +583,10 @@ public partial class MainWindow : Window
         statsWindow.ShowDialog();
     }
 
-    private void ResetPomodoroStats()
+    private void ResetPomodoroStats(PomodoroStatsResetScope scope)
     {
-        _settings.ResetPomodoroStats(DateTime.Now);
-        SaveSettings();
+        _settings.ResetPomodoroStats(DateTime.Now, scope);
+        SaveSettings(updatePosition: false);
         UpdateDisplayAndScheduleNextTick();
     }
 
@@ -744,10 +777,14 @@ public partial class MainWindow : Window
             MessageBoxImage.Warning);
     }
 
-    private void SaveSettings()
+    private void SaveSettings(bool updatePosition = true)
     {
-        _settings.Left = Left;
-        _settings.Top = Top;
+        if (updatePosition)
+        {
+            _settings.Left = Left;
+            _settings.Top = Top;
+        }
+
         _settingsStore.Save(_settings);
     }
 }

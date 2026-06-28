@@ -21,7 +21,7 @@ internal sealed class WidgetDisplayFormatter
             SideDateDayText: now.ToString("dd", CultureInfo.InvariantCulture),
             SideDateMonthText: now.ToString("MM", CultureInfo.InvariantCulture),
             ShowSideDate: settings.ShowSideDate,
-            Progress: settings.PomodoroEnabled && pomodoro.IsRunning
+            Progress: settings.PomodoroEnabled && pomodoro.HasActiveSession
                 ? BuildProgress(pomodoro, focusDuration, breakDuration)
                 : PomodoroProgressModel.Hidden);
     }
