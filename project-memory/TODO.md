@@ -5,6 +5,8 @@
 - [ ] Verify `Pomodoro Stats` context-menu dialog on Windows: opens centered over the widget, shows today/week/month/year count/minutes, current phase/remaining time, last-120-days heatmap, 12-month bar chart, and closes cleanly.
 - [ ] Verify `Pomodoro Stats` reset on Windows: button asks for confirmation, `No` keeps data, `Yes` clears today/week/month/year/activity stats, updates widget daily stats if visible, and persists after restart.
 - [ ] Verify `Pomodoro Stats` monthly focus chart on Windows: each month with data shows Pomodoro count above the bar and layout remains readable.
+- [ ] Verify focused-widget `Space` shortcut on Windows: click/focus the widget while Pomodoro is visible, Space toggles start/pause only while the mouse is over the widget, and Space does nothing in normal clock mode.
+- [ ] Verify Pomodoro long-break settings on Windows: Settings shows "use long break every N Pomodoro" and long-break duration controls, Apply/OK persists them, and every configured Nth completed Pomodoro starts the long break.
 - [ ] Verify daily Pomodoro stats on Windows: disabled by default, Settings toggle works, stats show only in Pomodoro mode, hover tooltips are clear, focus completion increments count/minutes, and stats reset on a new local date.
 - [ ] Verify side date on Windows: disabled by default, `Show side date` context-menu toggle works and persists, `Alt+left click` toggles it only in clock mode, day/month render as `dd` over `MM`, the block appears only in clock mode, and the right edge stays stable when toggled.
 - [ ] Verify custom tray menu on Windows after outside-click fix: right-click tray icon opens the larger WPF menu near the cursor, checked/disabled states update, commands work, clicking empty Windows desktop/screen space closes it, and Show/Hide still does not save settings.
@@ -34,6 +36,8 @@
 - [x] Hardened custom WPF tray menu dismissal by foreground-activating it and closing it on outside captured mouse clicks.
 - [x] Added `Reset stats` button to `Pomodoro Stats` with confirmation, one explicit settings save, and immediate stats/widget refresh.
 - [x] Added monthly Pomodoro count labels above the `Monthly focus` bars in `Pomodoro Stats`.
+- [x] Added focused-widget `Space` shortcut for Pomodoro start/pause, active only while Pomodoro display is visible and the mouse is over the widget.
+- [x] Added configurable Pomodoro long breaks: Settings controls for interval and long-break duration, persisted fields, normalization/tests, and runtime break selection on every configured Nth completed focus session.
 - [x] Regenerated app icon assets from the user's supplied light rounded-square bright blue ring image.
 - [x] Regenerated app icon assets from the user's supplied gray rounded-square blue ring image.
 - [x] Regenerated app icon assets from the user's supplied white rounded-square clock image.

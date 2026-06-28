@@ -553,6 +553,26 @@
                         TickFrequency="1"
                         IsSnapToTickEnabled="True"
                         ValueChanged="Slider_ValueChanged" />
+
+                <TextBlock x:Name="PomodoroLongBreakIntervalLabel"
+                           Style="{StaticResource FieldLabelStyle}"
+                           Margin="0,8,0,4" />
+                <Slider x:Name="PomodoroLongBreakIntervalSlider"
+                        Minimum="1"
+                        Maximum="20"
+                        TickFrequency="1"
+                        IsSnapToTickEnabled="True"
+                        ValueChanged="Slider_ValueChanged" />
+
+                <TextBlock x:Name="PomodoroLongBreakMinutesLabel"
+                           Style="{StaticResource FieldLabelStyle}"
+                           Margin="0,8,0,4" />
+                <Slider x:Name="PomodoroLongBreakMinutesSlider"
+                        Minimum="1"
+                        Maximum="60"
+                        TickFrequency="1"
+                        IsSnapToTickEnabled="True"
+                        ValueChanged="Slider_ValueChanged" />
               </StackPanel>
             </Border>
 

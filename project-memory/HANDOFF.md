@@ -4,10 +4,12 @@
 - WPF/.NET 8 Windows desktop clock widget.
 - Core UI: borderless transparent clock, date/weekday, tabbed settings window, visual presets, optional Pomodoro mode, sounds, tray icon, reset position command.
 - Pomodoro mode can optionally show daily stats on the widget: today's completed Pomodoro count and today's focus minutes as two green right-side numbers with tooltips.
+- Pomodoro settings now support a long-break cycle: regular break minutes, "use long break every N Pomodoro", and long break minutes. Default is every 4 Pomodoro, 15 minutes. The break after the N-th completed focus uses the long duration.
 - Clock mode can optionally show a right-side compact date block with day over month (`dd` / `MM`), toggled from the widget context menu. It is hidden in Pomodoro mode.
 - Widget context menu has `Pomodoro Stats`, which opens a dedicated stats dialog with today/week/month/year aggregates, current timer details, and a hybrid activity block.
 - `Pomodoro Stats` has a `Reset stats` button with confirmation. It clears all Pomodoro stats, saves settings once, and refreshes the stats window/widget display.
 - `Pomodoro Stats` monthly focus chart shows the monthly Pomodoro count above each bar.
+- The main widget accepts `Space` as a focused-window Pomodoro start/pause shortcut only while Pomodoro display is visible and the mouse is over the widget.
 - Settings are stored in `%APPDATA%\ClockWidget\settings.json`.
 - Settings load/save logic is in `ClockWidget/SettingsStore.cs`.
 - `SettingsStore` has an internal constructor for test-only custom settings directories.
@@ -109,11 +111,15 @@
 - Hardened custom tray menu dismissal: the WPF tray menu now explicitly moves itself to the foreground and captures outside mouse clicks so clicking empty Windows desktop/screen space should close it reliably.
 - Added `Reset stats` to `Pomodoro Stats`; it clears daily/current fields plus stats history and updates the displayed stats immediately.
 - Added Pomodoro count labels above each `Monthly focus` bar in `Pomodoro Stats`.
+- Added focused-widget `Space` shortcut for Pomodoro start/pause. It does not run globally and only triggers when Pomodoro is visible and the mouse is over the widget.
+- Added configurable Pomodoro long breaks in Settings: interval in completed Pomodoro sessions plus long-break duration. Runtime chooses the long break for every configured multiple of completed focus sessions.
 
 ## Next Focus
 - Next candidate: run `dotnet test .\ClockWidget.sln` on Windows after the latest Settings/preset/import/export/activation changes.
 - Manually verify the new `Pomodoro Stats` context-menu dialog opens, is centered over the widget, shows current stats correctly, and closes cleanly.
 - Manually verify `Pomodoro Stats` reset: button asks for confirmation, `No` keeps data, `Yes` clears today/week/month/year/activity stats, updates the widget daily stats if visible, and persists after restart.
+- Manually verify focused-widget `Space` shortcut on Windows: click/focus the widget while Pomodoro is visible, Space toggles start/pause only while the mouse is over the widget, and Space does nothing in normal clock mode.
+- Manually verify Pomodoro long-break settings on Windows: Settings shows the interval/duration sliders, Apply/OK persists them, and the break after every configured Nth Pomodoro uses the long duration.
 - Manually verify daily Pomodoro stats display: disabled by default, enabled through Settings, visible only in Pomodoro mode, tooltips appear on hover, focus completion increments count/minutes, and counts reset on a new local date.
 - Manually verify side date display: disabled by default, context-menu toggle persists, shows day over month in clock mode, hides in Pomodoro mode, and right-edge position is preserved when toggling.
 - Manually verify custom tray menu on Windows after the outside-click fix: right-click opens near the tray icon/cursor, text is larger, checked/disabled states update, commands work, clicking empty Windows desktop/screen space closes it, and Show/Hide still does not save settings.

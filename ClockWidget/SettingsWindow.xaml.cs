@@ -66,6 +66,8 @@ public partial class SettingsWindow : Window
         PomodoroEnabledCheckBox.IsChecked = Settings.PomodoroEnabled;
         PomodoroFocusMinutesSlider.Value = Settings.PomodoroFocusMinutes;
         PomodoroBreakMinutesSlider.Value = Settings.PomodoroBreakMinutes;
+        PomodoroLongBreakIntervalSlider.Value = Settings.PomodoroLongBreakInterval;
+        PomodoroLongBreakMinutesSlider.Value = Settings.PomodoroLongBreakMinutes;
         PomodoroAutoStartBreakCheckBox.IsChecked = Settings.PomodoroAutoStartBreak;
         PomodoroReturnToClockCheckBox.IsChecked = Settings.PomodoroReturnToClockAfterBreak;
         ShowPomodoroDailyStatsCheckBox.IsChecked = Settings.ShowPomodoroDailyStats;
@@ -105,6 +107,8 @@ public partial class SettingsWindow : Window
         settings.PomodoroEnabled = PomodoroEnabledCheckBox.IsChecked == true;
         settings.PomodoroFocusMinutes = (int)Math.Round(PomodoroFocusMinutesSlider.Value);
         settings.PomodoroBreakMinutes = (int)Math.Round(PomodoroBreakMinutesSlider.Value);
+        settings.PomodoroLongBreakInterval = (int)Math.Round(PomodoroLongBreakIntervalSlider.Value);
+        settings.PomodoroLongBreakMinutes = (int)Math.Round(PomodoroLongBreakMinutesSlider.Value);
         settings.PomodoroAutoStartBreak = PomodoroAutoStartBreakCheckBox.IsChecked == true;
         settings.PomodoroReturnToClockAfterBreak = PomodoroReturnToClockCheckBox.IsChecked == true;
         settings.ShowPomodoroDailyStats = ShowPomodoroDailyStatsCheckBox.IsChecked == true;
@@ -128,6 +132,8 @@ public partial class SettingsWindow : Window
         ClockFontWeightLabel.Text = $"Clock font weight: {GetFontWeightName(ClockFontWeightSlider.Value)}";
         PomodoroFocusMinutesLabel.Text = $"Focus minutes: {PomodoroFocusMinutesSlider.Value:0}";
         PomodoroBreakMinutesLabel.Text = $"Break minutes: {PomodoroBreakMinutesSlider.Value:0}";
+        PomodoroLongBreakIntervalLabel.Text = $"Use long break every: {PomodoroLongBreakIntervalSlider.Value:0} Pomodoro";
+        PomodoroLongBreakMinutesLabel.Text = $"Long break minutes: {PomodoroLongBreakMinutesSlider.Value:0}";
         UpdatePomodoroControlState();
         UpdateDateControlState();
         UpdateSizeControlState();
@@ -213,6 +219,8 @@ public partial class SettingsWindow : Window
         var enabled = PomodoroEnabledCheckBox.IsChecked == true;
         PomodoroFocusMinutesSlider.IsEnabled = enabled;
         PomodoroBreakMinutesSlider.IsEnabled = enabled;
+        PomodoroLongBreakIntervalSlider.IsEnabled = enabled;
+        PomodoroLongBreakMinutesSlider.IsEnabled = enabled;
         PomodoroAutoStartBreakCheckBox.IsEnabled = enabled;
         PomodoroReturnToClockCheckBox.IsEnabled = enabled;
         ShowPomodoroDailyStatsCheckBox.IsEnabled = enabled;

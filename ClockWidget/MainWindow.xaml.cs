@@ -55,6 +55,8 @@ public partial class MainWindow : Window
 
     private void Root_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        Focus();
+
         if ((Keyboard.Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
         {
             ToggleSideDateFromClockShortcut();
@@ -89,6 +91,19 @@ public partial class MainWindow : Window
 
             SaveSettings();
         }
+    }
+
+    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key != Key.Space
+            || !_pomodoroSession.IsPomodoroDisplayVisible(_settings)
+            || !Root.IsMouseOver)
+        {
+            return;
+        }
+
+        TogglePomodoroStartPause();
+        e.Handled = true;
     }
 
     private void AlwaysOnTopMenuItem_Click(object sender, RoutedEventArgs e)
@@ -410,7 +425,7 @@ public partial class MainWindow : Window
 
     private void UpdatePomodoroState()
     {
-        var completion = _pomodoroSession.Update(GetBreakDuration(), _settings.PomodoroAutoStartBreak);
+        var completion = _pomodoroSession.Update(GetBreakDurationForNextTransition(), _settings.PomodoroAutoStartBreak);
         if (completion == PomodoroPhaseCompletion.None)
         {
             return;
@@ -549,7 +564,15 @@ public partial class MainWindow : Window
 
     private TimeSpan GetBreakDuration()
     {
-        return TimeSpan.FromMinutes(_settings.PomodoroBreakMinutes);
+        return TimeSpan.FromMinutes(_settings.GetBreakMinutesForCompletedPomodoros(_settings.PomodoroDailyCount));
+    }
+
+    private TimeSpan GetBreakDurationForNextTransition()
+    {
+        var completedPomodoros = _pomodoroSession.Controller.Phase == PomodoroPhase.Focus
+            ? _settings.PomodoroDailyCount + 1
+            : _settings.PomodoroDailyCount;
+        return TimeSpan.FromMinutes(_settings.GetBreakMinutesForCompletedPomodoros(completedPomodoros));
     }
 
     private void PlayPomodoroCompletionSound()

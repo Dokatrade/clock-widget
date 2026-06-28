@@ -24,6 +24,8 @@ public sealed class WidgetSettings
     public const int MaxPomodoroFocusMinutes = 120;
     public const int MinPomodoroBreakMinutes = 1;
     public const int MaxPomodoroBreakMinutes = 60;
+    public const int MinPomodoroLongBreakInterval = 1;
+    public const int MaxPomodoroLongBreakInterval = 20;
 
     public double Left { get; set; } = double.NaN;
     public double Top { get; set; } = double.NaN;
@@ -50,6 +52,8 @@ public sealed class WidgetSettings
     public bool PomodoroEnabled { get; set; } = true;
     public int PomodoroFocusMinutes { get; set; } = 25;
     public int PomodoroBreakMinutes { get; set; } = 5;
+    public int PomodoroLongBreakInterval { get; set; } = 4;
+    public int PomodoroLongBreakMinutes { get; set; } = 15;
     public bool PomodoroAutoStartBreak { get; set; } = true;
     public bool PomodoroReturnToClockAfterBreak { get; set; } = true;
     public bool PomodoroPlaySound { get; set; } = true;
@@ -158,6 +162,8 @@ public sealed class WidgetSettings
         DateFontSize = ClampFinite(DateFontSize, MinDateFontSize, MaxDateFontSize, 13);
         PomodoroFocusMinutes = Math.Clamp(PomodoroFocusMinutes, MinPomodoroFocusMinutes, MaxPomodoroFocusMinutes);
         PomodoroBreakMinutes = Math.Clamp(PomodoroBreakMinutes, MinPomodoroBreakMinutes, MaxPomodoroBreakMinutes);
+        PomodoroLongBreakInterval = Math.Clamp(PomodoroLongBreakInterval, MinPomodoroLongBreakInterval, MaxPomodoroLongBreakInterval);
+        PomodoroLongBreakMinutes = Math.Clamp(PomodoroLongBreakMinutes, MinPomodoroBreakMinutes, MaxPomodoroBreakMinutes);
         PomodoroDailyCount = Math.Max(0, PomodoroDailyCount);
         PomodoroDailyFocusMinutes = Math.Max(0, PomodoroDailyFocusMinutes);
         PomodoroStatsHistory = NormalizePomodoroStatsHistory(PomodoroStatsHistory);
@@ -235,6 +241,8 @@ public sealed class WidgetSettings
             PomodoroEnabled = PomodoroEnabled,
             PomodoroFocusMinutes = PomodoroFocusMinutes,
             PomodoroBreakMinutes = PomodoroBreakMinutes,
+            PomodoroLongBreakInterval = PomodoroLongBreakInterval,
+            PomodoroLongBreakMinutes = PomodoroLongBreakMinutes,
             PomodoroAutoStartBreak = PomodoroAutoStartBreak,
             PomodoroReturnToClockAfterBreak = PomodoroReturnToClockAfterBreak,
             PomodoroPlaySound = PomodoroPlaySound,
@@ -246,6 +254,17 @@ public sealed class WidgetSettings
             PomodoroStatsHistory = (PomodoroStatsHistory ?? []).Select(entry => entry.Clone()).ToList(),
             Presets = (Presets ?? []).Select(preset => preset.Clone()).ToList()
         };
+    }
+
+    public int GetBreakMinutesForCompletedPomodoros(int completedPomodoros)
+    {
+        completedPomodoros = Math.Max(0, completedPomodoros);
+        var longBreakInterval = Math.Clamp(PomodoroLongBreakInterval, MinPomodoroLongBreakInterval, MaxPomodoroLongBreakInterval);
+        var shortBreakMinutes = Math.Clamp(PomodoroBreakMinutes, MinPomodoroBreakMinutes, MaxPomodoroBreakMinutes);
+        var longBreakMinutes = Math.Clamp(PomodoroLongBreakMinutes, MinPomodoroBreakMinutes, MaxPomodoroBreakMinutes);
+        return completedPomodoros > 0 && completedPomodoros % longBreakInterval == 0
+            ? longBreakMinutes
+            : shortBreakMinutes;
     }
 
     public void UpsertPomodoroStatsHistoryEntry(string date, int count, int focusMinutes)

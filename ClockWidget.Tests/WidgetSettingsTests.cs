@@ -19,6 +19,8 @@ public sealed class WidgetSettingsTests
             DateFontSize = 100,
             PomodoroFocusMinutes = 0,
             PomodoroBreakMinutes = 500,
+            PomodoroLongBreakInterval = 999,
+            PomodoroLongBreakMinutes = 500,
             PomodoroDailyCount = -1,
             PomodoroDailyFocusMinutes = -20,
             PomodoroStatsHistory =
@@ -42,6 +44,8 @@ public sealed class WidgetSettingsTests
         Assert.Equal(WidgetSettings.MaxDateFontSize, settings.DateFontSize);
         Assert.Equal(WidgetSettings.MinPomodoroFocusMinutes, settings.PomodoroFocusMinutes);
         Assert.Equal(WidgetSettings.MaxPomodoroBreakMinutes, settings.PomodoroBreakMinutes);
+        Assert.Equal(WidgetSettings.MaxPomodoroLongBreakInterval, settings.PomodoroLongBreakInterval);
+        Assert.Equal(WidgetSettings.MaxPomodoroBreakMinutes, settings.PomodoroLongBreakMinutes);
         Assert.Equal(0, settings.PomodoroDailyCount);
         Assert.Equal(0, settings.PomodoroDailyFocusMinutes);
         Assert.Single(settings.PomodoroStatsHistory);
@@ -130,6 +134,8 @@ public sealed class WidgetSettingsTests
             PomodoroEnabled = false,
             PomodoroFocusMinutes = 45,
             PomodoroBreakMinutes = 12,
+            PomodoroLongBreakInterval = 3,
+            PomodoroLongBreakMinutes = 20,
             PomodoroAutoStartBreak = false,
             PomodoroReturnToClockAfterBreak = false,
             PomodoroPlaySound = false,
@@ -159,6 +165,8 @@ public sealed class WidgetSettingsTests
         Assert.False(settings.PomodoroEnabled);
         Assert.Equal(45, settings.PomodoroFocusMinutes);
         Assert.Equal(12, settings.PomodoroBreakMinutes);
+        Assert.Equal(3, settings.PomodoroLongBreakInterval);
+        Assert.Equal(20, settings.PomodoroLongBreakMinutes);
         Assert.False(settings.PomodoroAutoStartBreak);
         Assert.False(settings.PomodoroReturnToClockAfterBreak);
         Assert.False(settings.PomodoroPlaySound);
@@ -170,6 +178,8 @@ public sealed class WidgetSettingsTests
     {
         var settings = new WidgetSettings
         {
+            PomodoroLongBreakInterval = 6,
+            PomodoroLongBreakMinutes = 30,
             ShowPomodoroDailyStats = true,
             PomodoroDailyStatsDate = "2026-06-12",
             PomodoroDailyCount = 4,
@@ -182,6 +192,8 @@ public sealed class WidgetSettingsTests
 
         var clone = settings.Clone();
 
+        Assert.Equal(6, clone.PomodoroLongBreakInterval);
+        Assert.Equal(30, clone.PomodoroLongBreakMinutes);
         Assert.True(clone.ShowPomodoroDailyStats);
         Assert.Equal("2026-06-12", clone.PomodoroDailyStatsDate);
         Assert.Equal(4, clone.PomodoroDailyCount);
@@ -189,6 +201,37 @@ public sealed class WidgetSettingsTests
         Assert.Single(clone.PomodoroStatsHistory);
         Assert.Equal("2026-06-11", clone.PomodoroStatsHistory[0].Date);
         Assert.NotSame(settings.PomodoroStatsHistory[0], clone.PomodoroStatsHistory[0]);
+    }
+
+    [Fact]
+    public void GetBreakMinutesForCompletedPomodoros_UsesLongBreakAtConfiguredInterval()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroBreakMinutes = 5,
+            PomodoroLongBreakInterval = 4,
+            PomodoroLongBreakMinutes = 15
+        };
+
+        Assert.Equal(5, settings.GetBreakMinutesForCompletedPomodoros(0));
+        Assert.Equal(5, settings.GetBreakMinutesForCompletedPomodoros(3));
+        Assert.Equal(15, settings.GetBreakMinutesForCompletedPomodoros(4));
+        Assert.Equal(5, settings.GetBreakMinutesForCompletedPomodoros(5));
+        Assert.Equal(15, settings.GetBreakMinutesForCompletedPomodoros(8));
+    }
+
+    [Fact]
+    public void GetBreakMinutesForCompletedPomodoros_ClampsUnnormalizedValues()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroBreakMinutes = 0,
+            PomodoroLongBreakInterval = 0,
+            PomodoroLongBreakMinutes = 999
+        };
+
+        Assert.Equal(WidgetSettings.MinPomodoroBreakMinutes, settings.GetBreakMinutesForCompletedPomodoros(0));
+        Assert.Equal(WidgetSettings.MaxPomodoroBreakMinutes, settings.GetBreakMinutesForCompletedPomodoros(1));
     }
 
     [Fact]
