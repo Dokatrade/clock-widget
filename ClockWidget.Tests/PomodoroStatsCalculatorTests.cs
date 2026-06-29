@@ -43,4 +43,127 @@ public sealed class PomodoroStatsCalculatorTests
         Assert.Equal(new PomodoroStatsPeriod(4, 100), summary.Month);
         Assert.Equal(new PomodoroStatsPeriod(4, 100), summary.Year);
     }
+
+    [Fact]
+    public void BuildHourlyFocusMinutes_DistributesSessionsAcrossHours()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroFocusSessions =
+            [
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-28T10:10:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-28T11:05:00", FocusMinutes = 10 }
+            ]
+        };
+
+        var hours = PomodoroStatsCalculator.BuildHourlyFocusMinutes(
+            settings,
+            new DateTime(2026, 6, 28, 14, 30, 0));
+
+        Assert.Equal(15.0, hours[9]);
+        Assert.Equal(25.0, hours[10]);
+        Assert.Equal(5.0, hours[11]);
+        Assert.Equal(45.0, hours.Sum());
+    }
+
+    [Fact]
+    public void BuildHourlyFocusMinutes_FiltersBySelectedRange()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroFocusSessions =
+            [
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-05-28T10:30:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-21T10:30:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-28T10:30:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-28T11:30:00", FocusMinutes = 25 }
+            ]
+        };
+
+        var monthHours = PomodoroStatsCalculator.BuildHourlyFocusMinutes(
+            settings,
+            new DateTime(2026, 6, 28, 14, 30, 0),
+            PomodoroRhythmRange.Month);
+        var weekHours = PomodoroStatsCalculator.BuildHourlyFocusMinutes(
+            settings,
+            new DateTime(2026, 6, 28, 14, 30, 0),
+            PomodoroRhythmRange.Week);
+        var todayHours = PomodoroStatsCalculator.BuildHourlyFocusMinutes(
+            settings,
+            new DateTime(2026, 6, 28, 14, 30, 0),
+            PomodoroRhythmRange.Today);
+
+        Assert.Equal(50.0, monthHours[10]);
+        Assert.Equal(25.0, weekHours[10]);
+        Assert.Equal(25.0, todayHours[10]);
+        Assert.Equal(25.0, todayHours[11]);
+    }
+
+    [Fact]
+    public void BuildHourlyFocusMinutes_AverageDividesByActiveDaysInRange()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroFocusSessions =
+            [
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-27T10:30:00", FocusMinutes = 30 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-28T10:30:00", FocusMinutes = 30 }
+            ]
+        };
+
+        var hours = PomodoroStatsCalculator.BuildHourlyFocusMinutes(
+            settings,
+            new DateTime(2026, 6, 28, 14, 30, 0),
+            PomodoroRhythmRange.Week,
+            PomodoroRhythmMode.Average);
+
+        Assert.Equal(30.0, hours[10]);
+        Assert.Equal(30.0, hours.Sum());
+    }
+
+    [Fact]
+    public void BuildHourlyPomodoroCounts_CountsSessionsByCompletionHour()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroFocusSessions =
+            [
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-28T10:10:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-28T10:45:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-28T11:05:00", FocusMinutes = 10 }
+            ]
+        };
+
+        var hours = PomodoroStatsCalculator.BuildHourlyPomodoroCounts(
+            settings,
+            new DateTime(2026, 6, 28, 14, 30, 0));
+
+        Assert.Equal(2.0, hours[10]);
+        Assert.Equal(1.0, hours[11]);
+        Assert.Equal(3.0, hours.Sum());
+    }
+
+    [Fact]
+    public void BuildHourlyPomodoroCounts_AverageDividesByActiveDaysInRange()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroFocusSessions =
+            [
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-27T10:30:00", FocusMinutes = 30 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-28T10:30:00", FocusMinutes = 30 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-28T11:30:00", FocusMinutes = 30 }
+            ]
+        };
+
+        var hours = PomodoroStatsCalculator.BuildHourlyPomodoroCounts(
+            settings,
+            new DateTime(2026, 6, 28, 14, 30, 0),
+            PomodoroRhythmRange.Week,
+            PomodoroRhythmMode.Average);
+
+        Assert.Equal(1.0, hours[10]);
+        Assert.Equal(0.5, hours[11]);
+        Assert.Equal(1.5, hours.Sum());
+    }
 }

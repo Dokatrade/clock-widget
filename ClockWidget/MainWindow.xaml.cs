@@ -119,6 +119,12 @@ public partial class MainWindow : Window
         SetAlwaysOnTop(AlwaysOnTopMenuItem.IsChecked);
     }
 
+    private void HideWidgetMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        Hide();
+        UpdateTrayMenuState();
+    }
+
     private void ShowSecondsMenuItem_Click(object sender, RoutedEventArgs e)
     {
         _settings.ShowSeconds = ShowSecondsMenuItem.IsChecked;
@@ -537,13 +543,16 @@ public partial class MainWindow : Window
 
     private void RecordPomodoroFocusCompletion()
     {
-        ResetPomodoroDailyStatsIfNeeded(DateTime.Now);
+        var completedAt = DateTime.Now;
+        var focusMinutes = (int)Math.Round(GetFocusDuration().TotalMinutes);
+        ResetPomodoroDailyStatsIfNeeded(completedAt);
         _settings.PomodoroDailyCount++;
-        _settings.PomodoroDailyFocusMinutes += (int)Math.Round(GetFocusDuration().TotalMinutes);
+        _settings.PomodoroDailyFocusMinutes += focusMinutes;
         _settings.UpsertPomodoroStatsHistoryEntry(
             _settings.PomodoroDailyStatsDate,
             _settings.PomodoroDailyCount,
             _settings.PomodoroDailyFocusMinutes);
+        _settings.AddPomodoroFocusSession(completedAt, focusMinutes);
         SaveSettings(updatePosition: false);
     }
 
@@ -575,7 +584,9 @@ public partial class MainWindow : Window
 
         var statsWindow = new PomodoroStatsWindow(
             _settings,
-            ResetPomodoroStats)
+            ResetPomodoroStats,
+            DeletePomodoroFocusSession,
+            SavePomodoroRhythmOptions)
         {
             Owner = this
         };
@@ -583,9 +594,26 @@ public partial class MainWindow : Window
         statsWindow.ShowDialog();
     }
 
+    private void SavePomodoroRhythmOptions()
+    {
+        _settings.Normalize();
+        SaveSettings(updatePosition: false);
+    }
+
     private void ResetPomodoroStats(PomodoroStatsResetScope scope)
     {
         _settings.ResetPomodoroStats(DateTime.Now, scope);
+        SaveSettings(updatePosition: false);
+        UpdateDisplayAndScheduleNextTick();
+    }
+
+    private void DeletePomodoroFocusSession(DateTime completedAt, int focusMinutes)
+    {
+        if (!_settings.RemovePomodoroFocusSession(completedAt, focusMinutes))
+        {
+            return;
+        }
+
         SaveSettings(updatePosition: false);
         UpdateDisplayAndScheduleNextTick();
     }

@@ -10,6 +10,13 @@
 - `Pomodoro Stats` has a `Reset stats` button that opens a choice for `All stats`, `Today`, or `This week`, then asks for confirmation. It saves settings once and refreshes the stats window/widget display.
 - `Pomodoro Stats` monthly focus chart shows the monthly Pomodoro count above each bar.
 - `Pomodoro Stats` Activity heatmap has previous/next navigation plus a `Today` return button in the "Last 120 days" header. It scrolls the 120-day calendar by 30 days, allows older empty ranges, disables forward/Today at the latest range, and keeps the state in the open window only.
+- `Pomodoro Stats` has tabs: `Overview` for existing period/activity stats and `Sessions` for focus minutes by hour of day plus today's completed focus sessions.
+- `Pomodoro Stats` tabs use underline-style text tabs rather than framed button tabs to avoid the clipped right-border rendering issue seen on Windows.
+- Hourly Pomodoro rhythm uses `WidgetSettings.PomodoroFocusSessions`, a per-completion event list recorded only when a focus phase completes. Older daily aggregate stats do not have enough timestamp detail to populate the hourly rhythm retroactively.
+- `Sessions` hourly chart has view filters for total/average focus minutes and period: all time, current month, current week, or today. Average divides by active days that have at least one timestamped Pomodoro session in the selected period. The last selected Sessions mode/range is saved on user click and restored next time.
+- `Sessions` hourly chart can switch its unit between focus minutes and Pomodoro count. The visible subtitle is `Focus minutes / pomodoros by hour of day`; the last selected unit is saved on user click and restored next time. Pomodoro counts are grouped by completion hour.
+- `Sessions` today's session rows have a red delete cross on the left. Deleting a row removes that timestamped focus session, decrements the matching daily aggregate, saves once, and refreshes the stats/widget display.
+- `Sessions` Today header shows one small red WPF tomato icon per completed Pomodoro session today. The icons are rebuilt from timestamped sessions, so deleting a Today row updates them.
 - The main widget accepts `Space` as a focused-window Pomodoro start/pause shortcut only while Pomodoro display is visible and the mouse is over the widget.
 - Settings are stored in `%APPDATA%\ClockWidget\settings.json`.
 - Settings load/save logic is in `ClockWidget/SettingsStore.cs`.
@@ -34,7 +41,7 @@
 - Settings import/export is user-triggered from the Settings window and uses `SettingsStore.Serialize()` / `SettingsStore.Deserialize()`.
 - `Apply` in Settings is enabled only when the current dialog draft differs from the last applied draft.
 - `SettingsWindow.xaml` has a refreshed XAML-only visual design: larger dialog, tab pills, section panels, and styled action buttons. The extra top header block was removed.
-- App icon assets (`AppIcon.ico` and `AppIconSource.png`) were regenerated from the user's supplied light rounded-square image with a bright blue ring. ICO frames include 256/128/64/48/32/16 sizes.
+- App icon assets (`AppIcon.ico` and `AppIconSource.png`) are the user's supplied orange hourglass image with a transparent background. ICO frames include 256/128/64/48/32/16 sizes; 64/48/32/16 are cropped tighter for tray readability.
 - Single-instance behavior now signals the existing app instance to show/activate the existing widget when a second process starts.
 - `MainWindow.xaml.cs` still owns main UI orchestration, startup warning UI, applying display models to WPF controls, sounds, and calls into the helper services.
 - Reused/frozen display brushes are defined in `MainWindow.xaml.cs`; only the focus Pomodoro progress brush remains dynamic because its color changes with progress.
@@ -103,7 +110,7 @@
 - Extracted `WindowPlacementGeometry` and added tests for clamp/snap/default-position math.
 - Refreshed `SettingsWindow` visual design in XAML only without code-behind changes or new dependencies.
 - Removed the extra top `Clock Settings` header block from Settings.
-- Regenerated app icon assets from the user's supplied light rounded-square image with a bright blue ring.
+- Regenerated app icon assets from the user's supplied orange hourglass image with a transparent background.
 - Added optional daily Pomodoro stats in Pomodoro mode: right-side green numbers for completed Pomodoros today and focus minutes today, with hover tooltips.
 - Added `Show daily Pomodoro stats` setting under the Pomodoro tab.
 - Added `WidgetSettings` fields/tests for daily Pomodoro stats persistence and normalization.
@@ -115,6 +122,7 @@
 - Hardened custom tray menu dismissal: the WPF tray menu now explicitly moves itself to the foreground and captures outside mouse clicks so clicking empty Windows desktop/screen space should close it reliably.
 - Added `Reset stats` to `Pomodoro Stats`; it offers `All stats`, `Today`, and `This week`, clears the selected scope, and updates the displayed stats immediately.
 - Added Pomodoro count labels above each `Monthly focus` bar in `Pomodoro Stats`.
+- `Pomodoro Stats` -> `Overview` -> `Monthly focus` has unit links for Minutes/Pomodoros. The selected unit is persisted separately from the `Sessions` chart unit.
 - Added previous/next navigation plus a `Today` return button for the `Pomodoro Stats` Activity heatmap. The latest range remains labeled `Last 120 days`; older ranges show explicit start/end dates.
 - Removed the `Current Timer` block from `Pomodoro Stats` so the dialog focuses on saved statistics instead of duplicating the main widget timer.
 - Added focused-widget `Space` shortcut for Pomodoro start/pause. It does not run globally and only triggers when Pomodoro is visible and the mouse is over the widget.
@@ -123,9 +131,26 @@
 - Stabilized the main time text width with tabular numerals and a calculated minimum width for clock/Pomodoro displays.
 - Tightened the clock layout: `DateText` top margin is now `-8`, and stable time width factors were reduced to make the widget narrower.
 - Changed app close and Pomodoro stats saves to avoid overwriting saved coordinates with temporary Pomodoro-mode window geometry.
+- Added a `Sessions` tab to `Pomodoro Stats`: a 24-hour focus-minutes bar chart and today's completed focus session list. New focus completions now store timestamped session entries alongside the existing daily aggregate history.
+- Added delete buttons for today's sessions in the `Sessions` tab, backed by `WidgetSettings.RemovePomodoroFocusSession()`.
+- Added `Sessions` chart link controls for total vs average and all-time/month/week/day ranges; the last selection is persisted.
+- Added `Sessions` chart unit links for Minutes/Pomodoros; the chart title now says `Focus minutes / pomodoros by hour of day`.
+- Added `Overview` monthly chart unit links for Minutes/Pomodoros; monthly bars can use either focus minutes or Pomodoro counts.
+- Replaced framed `Pomodoro Stats` tab buttons with underline-style text tabs so `Overview` / `Sessions` no longer depend on a right border.
+- Adjusted `Pomodoro Stats` -> `Sessions` hourly chart labels so focus-minute values sit directly above their own bars instead of sharing one top-aligned row.
+- Adjusted `Pomodoro Stats` -> `Overview` monthly focus labels so Pomodoro counts sit directly above their own bars instead of sharing one top-aligned row.
+- Added small red WPF tomato icons beside `Pomodoro Stats` -> `Sessions` -> `Today`, one per completed Pomodoro session today.
 
 ## Next Focus
 - Next candidate: run `dotnet test .\ClockWidget.sln` on Windows after the latest Settings/preset/import/export/activation changes.
+- Manually verify `Pomodoro Stats` tabs on Windows: `Overview` keeps existing stats/activity, `Sessions` shows a 24-hour chart after new Pomodoro completions, and today's list uses the expected date/time plus focus duration format.
+- Manually verify `Pomodoro Stats` -> `Sessions` chart link controls on Windows: total/average and all-time/month/week/day ranges refresh the hourly bars, selected option is highlighted/disabled, and the last selected combination is restored after reopening/restarting.
+- Manually verify `Pomodoro Stats` -> `Sessions` unit links on Windows: Minutes/Pomodoros switches the hourly chart values and bar heights, selected option is highlighted/disabled, and the last selected unit is restored after reopening/restarting.
+- Manually verify `Pomodoro Stats` -> `Sessions` hourly chart on Windows: focus-minute labels sit just above each differently-sized bar and do not overlap the chart border or hour labels.
+- Manually verify deleting a session from `Pomodoro Stats` -> `Sessions` -> `Today`: red cross removes only that Pomodoro, updates today's count/minutes, refreshes the hourly chart/list, and persists after restart.
+- Manually verify `Pomodoro Stats` -> `Sessions` -> `Today` tomato icons on Windows: one red tomato appears per completed Pomodoro today and updates after deleting a session.
+- Manually verify `Pomodoro Stats` -> `Overview` monthly focus chart on Windows: Pomodoro count labels sit just above each differently-sized monthly bar and do not overlap the chart border or month labels.
+- Manually verify `Pomodoro Stats` -> `Overview` monthly unit links on Windows: Minutes/Pomodoros switches monthly bar values and heights, selected option is highlighted/disabled, and the last selected unit is restored after reopening/restarting.
 - Manually verify the new `Pomodoro Stats` context-menu dialog opens, is centered over the widget, shows today/week/month/year stats and activity correctly, and closes cleanly.
 - Manually verify `Pomodoro Stats` reset choices: button opens `All stats` / `Today` / `This week`, each choice asks for confirmation, `No` keeps data, `Yes` clears only the selected scope, updates the widget daily stats if visible, and persists after restart.
 - Manually verify `Pomodoro Stats` Activity navigation: back/forward buttons scroll the heatmap by 30 days, `Today` returns to the latest range, forward/Today are disabled at the latest range, and older ranges show concrete dates even if they have no stats.

@@ -63,6 +63,11 @@ public sealed class WidgetSettings
     public int PomodoroDailyCount { get; set; }
     public int PomodoroDailyFocusMinutes { get; set; }
     public List<PomodoroStatsEntry> PomodoroStatsHistory { get; set; } = [];
+    public List<PomodoroFocusSessionEntry> PomodoroFocusSessions { get; set; } = [];
+    public PomodoroRhythmMetric PomodoroMonthlyMetric { get; set; } = PomodoroRhythmMetric.Minutes;
+    public PomodoroRhythmMetric PomodoroRhythmMetric { get; set; } = PomodoroRhythmMetric.Minutes;
+    public PomodoroRhythmMode PomodoroRhythmMode { get; set; } = PomodoroRhythmMode.Total;
+    public PomodoroRhythmRange PomodoroRhythmRange { get; set; } = PomodoroRhythmRange.AllTime;
     public List<WidgetPreset> Presets { get; set; } = [];
 
     public static IReadOnlyList<WidgetPreset> CreateBuiltInPresets()
@@ -171,6 +176,26 @@ public sealed class WidgetSettings
             PomodoroDailyStatsDate,
             PomodoroDailyCount,
             PomodoroDailyFocusMinutes);
+        PomodoroFocusSessions = NormalizePomodoroFocusSessions(PomodoroFocusSessions);
+        if (!Enum.IsDefined(typeof(PomodoroRhythmMetric), PomodoroMonthlyMetric))
+        {
+            PomodoroMonthlyMetric = PomodoroRhythmMetric.Minutes;
+        }
+
+        if (!Enum.IsDefined(typeof(PomodoroRhythmMetric), PomodoroRhythmMetric))
+        {
+            PomodoroRhythmMetric = PomodoroRhythmMetric.Minutes;
+        }
+
+        if (!Enum.IsDefined(typeof(PomodoroRhythmMode), PomodoroRhythmMode))
+        {
+            PomodoroRhythmMode = PomodoroRhythmMode.Total;
+        }
+
+        if (!Enum.IsDefined(typeof(PomodoroRhythmRange), PomodoroRhythmRange))
+        {
+            PomodoroRhythmRange = PomodoroRhythmRange.AllTime;
+        }
 
         if (!Enum.IsDefined(typeof(PomodoroSound), PomodoroSound))
         {
@@ -252,6 +277,11 @@ public sealed class WidgetSettings
             PomodoroDailyCount = PomodoroDailyCount,
             PomodoroDailyFocusMinutes = PomodoroDailyFocusMinutes,
             PomodoroStatsHistory = (PomodoroStatsHistory ?? []).Select(entry => entry.Clone()).ToList(),
+            PomodoroFocusSessions = (PomodoroFocusSessions ?? []).Select(entry => entry.Clone()).ToList(),
+            PomodoroMonthlyMetric = PomodoroMonthlyMetric,
+            PomodoroRhythmMetric = PomodoroRhythmMetric,
+            PomodoroRhythmMode = PomodoroRhythmMode,
+            PomodoroRhythmRange = PomodoroRhythmRange,
             Presets = (Presets ?? []).Select(preset => preset.Clone()).ToList()
         };
     }
@@ -297,6 +327,46 @@ public sealed class WidgetSettings
         PomodoroStatsHistory = NormalizePomodoroStatsHistory(PomodoroStatsHistory);
     }
 
+    public void AddPomodoroFocusSession(DateTime completedAt, int focusMinutes)
+    {
+        focusMinutes = Math.Max(0, focusMinutes);
+        if (focusMinutes == 0)
+        {
+            return;
+        }
+
+        PomodoroFocusSessions.Add(new PomodoroFocusSessionEntry
+        {
+            CompletedAt = completedAt.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture),
+            FocusMinutes = focusMinutes
+        });
+        PomodoroFocusSessions = NormalizePomodoroFocusSessions(PomodoroFocusSessions);
+    }
+
+    public bool RemovePomodoroFocusSession(DateTime completedAt, int focusMinutes)
+    {
+        focusMinutes = Math.Max(0, focusMinutes);
+        if (focusMinutes == 0)
+        {
+            return false;
+        }
+
+        PomodoroFocusSessions = NormalizePomodoroFocusSessions(PomodoroFocusSessions);
+        var completedAtText = completedAt.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
+        var index = PomodoroFocusSessions.FindIndex(entry =>
+            string.Equals(entry.CompletedAt, completedAtText, StringComparison.Ordinal)
+            && entry.FocusMinutes == focusMinutes);
+        if (index < 0)
+        {
+            return false;
+        }
+
+        PomodoroFocusSessions.RemoveAt(index);
+        var date = completedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        DecrementPomodoroStatsForDate(date, focusMinutes);
+        return true;
+    }
+
     public void ResetPomodoroStats(DateTime now, PomodoroStatsResetScope scope = PomodoroStatsResetScope.All)
     {
         var today = now.Date;
@@ -306,10 +376,12 @@ public sealed class WidgetSettings
             PomodoroDailyCount = 0;
             PomodoroDailyFocusMinutes = 0;
             PomodoroStatsHistory = [];
+            PomodoroFocusSessions = [];
             return;
         }
 
         PomodoroStatsHistory = NormalizePomodoroStatsHistory(PomodoroStatsHistory);
+        PomodoroFocusSessions = NormalizePomodoroFocusSessions(PomodoroFocusSessions);
         UpsertPomodoroStatsHistoryEntry(
             PomodoroDailyStatsDate,
             PomodoroDailyCount,
@@ -325,6 +397,13 @@ public sealed class WidgetSettings
             {
                 var entryDate = ParseStatsDate(entry.Date);
                 return entryDate is null || entryDate < startDate || entryDate > endDate;
+            })
+            .ToList();
+        PomodoroFocusSessions = PomodoroFocusSessions
+            .Where(entry =>
+            {
+                var completedAt = ParseStatsTimestamp(entry.CompletedAt);
+                return completedAt is null || completedAt.Value.Date < startDate || completedAt.Value.Date > endDate;
             })
             .ToList();
 
@@ -429,6 +508,48 @@ public sealed class WidgetSettings
             .ToList();
     }
 
+    private static List<PomodoroFocusSessionEntry> NormalizePomodoroFocusSessions(IEnumerable<PomodoroFocusSessionEntry>? entries)
+    {
+        return (entries ?? [])
+            .Select(entry => entry.Clone())
+            .Select(entry =>
+            {
+                entry.CompletedAt = NormalizeStatsTimestamp(entry.CompletedAt);
+                entry.FocusMinutes = Math.Max(0, entry.FocusMinutes);
+                return entry;
+            })
+            .Where(entry => entry.CompletedAt.Length > 0 && entry.FocusMinutes > 0)
+            .OrderBy(entry => entry.CompletedAt, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private void DecrementPomodoroStatsForDate(string date, int focusMinutes)
+    {
+        date = NormalizeStatsDate(date);
+        if (date.Length == 0)
+        {
+            return;
+        }
+
+        if (string.Equals(NormalizeStatsDate(PomodoroDailyStatsDate), date, StringComparison.Ordinal))
+        {
+            PomodoroDailyCount = Math.Max(0, PomodoroDailyCount - 1);
+            PomodoroDailyFocusMinutes = Math.Max(0, PomodoroDailyFocusMinutes - focusMinutes);
+        }
+
+        PomodoroStatsHistory = NormalizePomodoroStatsHistory(PomodoroStatsHistory);
+        var existing = PomodoroStatsHistory.FirstOrDefault(entry =>
+            string.Equals(entry.Date, date, StringComparison.Ordinal));
+        if (existing is null)
+        {
+            return;
+        }
+
+        existing.Count = Math.Max(0, existing.Count - 1);
+        existing.FocusMinutes = Math.Max(0, existing.FocusMinutes - focusMinutes);
+        PomodoroStatsHistory = NormalizePomodoroStatsHistory(PomodoroStatsHistory);
+    }
+
     private static string NormalizeStatsDate(string? date)
     {
         return ParseStatsDate(date) is { } statsDate
@@ -445,6 +566,25 @@ public sealed class WidgetSettings
             DateTimeStyles.None,
             out var parsed)
             ? parsed.Date
+            : null;
+    }
+
+    private static string NormalizeStatsTimestamp(string? timestamp)
+    {
+        return ParseStatsTimestamp(timestamp) is { } statsTimestamp
+            ? statsTimestamp.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)
+            : "";
+    }
+
+    private static DateTime? ParseStatsTimestamp(string? timestamp)
+    {
+        return DateTime.TryParseExact(
+            timestamp,
+            "yyyy-MM-ddTHH:mm:ss",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var parsed)
+            ? parsed
             : null;
     }
 
@@ -474,6 +614,21 @@ public sealed class PomodoroStatsEntry
         {
             Date = Date,
             Count = Count,
+            FocusMinutes = FocusMinutes
+        };
+    }
+}
+
+public sealed class PomodoroFocusSessionEntry
+{
+    public string CompletedAt { get; set; } = "";
+    public int FocusMinutes { get; set; }
+
+    public PomodoroFocusSessionEntry Clone()
+    {
+        return new PomodoroFocusSessionEntry
+        {
+            CompletedAt = CompletedAt,
             FocusMinutes = FocusMinutes
         };
     }

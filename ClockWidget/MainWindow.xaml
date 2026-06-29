@@ -100,6 +100,10 @@
     </Border.Effect>
     <Border.ContextMenu>
       <ContextMenu>
+        <MenuItem Header="Hide Widget"
+                  FontWeight="SemiBold"
+                  Click="HideWidgetMenuItem_Click" />
+        <Separator />
         <MenuItem x:Name="AlwaysOnTopMenuItem"
                   Header="Always on top"
                   IsCheckable="True"
@@ -116,6 +120,7 @@
                   Click="ShowSideDateMenuItem_Click" />
         <MenuItem x:Name="LockPositionMenuItem"
                   Header="Lock position"
+                  FontWeight="SemiBold"
                   IsCheckable="True"
                   Click="LockPositionMenuItem_Click" />
         <MenuItem Header="Reset position"
@@ -132,9 +137,11 @@
                   Header="Reset Pomodoro"
                   Click="PomodoroResetMenuItem_Click" />
         <MenuItem Header="Pomodoro Stats"
+                  FontWeight="SemiBold"
                   Click="PomodoroStatsMenuItem_Click" />
         <Separator />
         <MenuItem Header="Settings..."
+                  FontWeight="SemiBold"
                   Click="SettingsMenuItem_Click" />
         <Separator />
         <MenuItem Header="Exit"

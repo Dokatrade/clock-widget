@@ -10,7 +10,9 @@
         ResizeMode="CanResize"
         WindowStartupLocation="CenterOwner"
         Background="#FFF7F8FB"
-        FontFamily="Segoe UI Variable Text, Segoe UI, Arial">
+        FontFamily="Segoe UI Variable Text, Segoe UI, Arial"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
   <Window.Resources>
     <SolidColorBrush x:Key="WindowTextBrush"
                      Color="#111827" />
@@ -171,6 +173,200 @@
         </Trigger>
       </Style.Triggers>
     </Style>
+
+    <Style x:Key="RhythmLinkButtonStyle"
+           TargetType="Button">
+      <Setter Property="Padding"
+              Value="0" />
+      <Setter Property="Margin"
+              Value="0,0,10,0" />
+      <Setter Property="Foreground"
+              Value="{StaticResource MutedTextBrush}" />
+      <Setter Property="Background"
+              Value="Transparent" />
+      <Setter Property="BorderBrush"
+              Value="Transparent" />
+      <Setter Property="BorderThickness"
+              Value="0" />
+      <Setter Property="FontSize"
+              Value="15" />
+      <Setter Property="FontWeight"
+              Value="SemiBold" />
+      <Setter Property="Cursor"
+              Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <ContentPresenter HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Margin="{TemplateBinding Padding}" />
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver"
+                       Value="True">
+                <Setter Property="Foreground"
+                        Value="{StaticResource AccentBrush}" />
+              </Trigger>
+              <Trigger Property="IsEnabled"
+                       Value="False">
+                <Setter Property="Foreground"
+                        Value="{StaticResource AccentBrush}" />
+                <Setter Property="Cursor"
+                        Value="Arrow" />
+                <Setter Property="Opacity"
+                        Value="1" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="DeletePomodoroButtonStyle"
+           TargetType="Button">
+      <Setter Property="Width"
+              Value="26" />
+      <Setter Property="Height"
+              Value="26" />
+      <Setter Property="Padding"
+              Value="0" />
+      <Setter Property="Foreground"
+              Value="#B85A52" />
+      <Setter Property="Background"
+              Value="Transparent" />
+      <Setter Property="BorderBrush"
+              Value="Transparent" />
+      <Setter Property="BorderThickness"
+              Value="1" />
+      <Setter Property="FontSize"
+              Value="17" />
+      <Setter Property="FontWeight"
+              Value="SemiBold" />
+      <Setter Property="Cursor"
+              Value="Hand" />
+      <Setter Property="Opacity"
+              Value="0.68" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="DeleteButtonSurface"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="13">
+              <ContentPresenter HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Margin="{TemplateBinding Padding}" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver"
+                       Value="True">
+                <Setter Property="Opacity"
+                        Value="1" />
+                <Setter TargetName="DeleteButtonSurface"
+                        Property="Background"
+                        Value="#FEF3F2" />
+                <Setter TargetName="DeleteButtonSurface"
+                        Property="BorderBrush"
+                        Value="#FECACA" />
+              </Trigger>
+              <Trigger Property="IsPressed"
+                       Value="True">
+                <Setter TargetName="DeleteButtonSurface"
+                        Property="Background"
+                        Value="#FEE4E2" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="TabControl">
+      <Setter Property="Background"
+              Value="Transparent" />
+      <Setter Property="BorderThickness"
+              Value="0" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TabControl">
+            <DockPanel>
+              <TabPanel DockPanel.Dock="Top"
+                        IsItemsHost="True"
+                        ClipToBounds="False"
+                        Margin="0,0,0,10" />
+              <ContentPresenter ContentSource="SelectedContent" />
+            </DockPanel>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="TabItem">
+      <Setter Property="Height"
+              Value="38" />
+      <Setter Property="MinWidth"
+              Value="0" />
+      <Setter Property="Margin"
+              Value="0,0,4,0" />
+      <Setter Property="FontWeight"
+              Value="SemiBold" />
+      <Setter Property="Foreground"
+              Value="{StaticResource MutedTextBrush}" />
+      <Setter Property="Cursor"
+              Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TabItem">
+            <Grid Height="{TemplateBinding Height}"
+                  MinWidth="{TemplateBinding MinWidth}"
+                  ClipToBounds="False"
+                  SnapsToDevicePixels="True">
+              <Border x:Name="TabHoverSurface"
+                      Background="Transparent"
+                      CornerRadius="6"
+                      Margin="0,0,0,4"
+                      Padding="4,0">
+                <ContentPresenter ContentSource="Header"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Margin="1,0,3,0" />
+              </Border>
+              <Border x:Name="TabIndicator"
+                      Height="3"
+                      Background="Transparent"
+                      CornerRadius="2"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Bottom"
+                      Margin="4,0"
+                      IsHitTestVisible="False" />
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsSelected"
+                       Value="True">
+                <Setter TargetName="TabIndicator"
+                        Property="Background"
+                        Value="#2563EB" />
+                <Setter Property="Foreground"
+                        Value="{StaticResource AccentBrush}" />
+              </Trigger>
+              <Trigger Property="IsMouseOver"
+                       Value="True">
+                <Setter TargetName="TabHoverSurface"
+                        Property="Background"
+                        Value="#F8FAFC" />
+              </Trigger>
+              <Trigger Property="IsEnabled"
+                       Value="False">
+                <Setter Property="Opacity"
+                        Value="0.45" />
+                <Setter Property="Cursor"
+                        Value="Arrow" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
   </Window.Resources>
 
   <DockPanel Margin="20">
@@ -201,9 +397,11 @@
       </DockPanel>
     </Border>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <StackPanel Margin="0,0,8,0">
-        <Border Style="{StaticResource SectionCardStyle}">
+    <TabControl Margin="0,0,8,0">
+      <TabItem Header="Overview">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <Border Style="{StaticResource SectionCardStyle}">
           <StackPanel>
             <TextBlock x:Name="TodayTitleText"
                        Text="Today"
@@ -324,9 +522,9 @@
               </Border>
             </UniformGrid>
           </StackPanel>
-        </Border>
+            </Border>
 
-        <Border Style="{StaticResource SectionCardStyle}">
+            <Border Style="{StaticResource SectionCardStyle}">
           <StackPanel>
             <TextBlock Text="Activity"
                        Style="{StaticResource SectionTitleStyle}" />
@@ -421,18 +619,133 @@
                         Background="#E2E8F0"
                         Margin="0,18,0,16" />
 
-                <TextBlock Text="Monthly focus"
-                           Foreground="{StaticResource WindowTextBrush}"
-                           FontSize="15"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,12" />
+                <DockPanel Margin="0,0,0,12">
+                  <WrapPanel DockPanel.Dock="Right"
+                             HorizontalAlignment="Right">
+                    <Button x:Name="MonthlyMinutesButton"
+                            Content="Minutes"
+                            Style="{StaticResource RhythmLinkButtonStyle}"
+                            Click="MonthlyMinutesButton_Click" />
+                    <Button x:Name="MonthlyPomodorosButton"
+                            Content="Pomodoros"
+                            Style="{StaticResource RhythmLinkButtonStyle}"
+                            Click="MonthlyPomodorosButton_Click" />
+                  </WrapPanel>
+                  <TextBlock Text="Monthly focus"
+                             Foreground="{StaticResource WindowTextBrush}"
+                             FontSize="15"
+                             FontWeight="SemiBold"
+                             VerticalAlignment="Center" />
+                </DockPanel>
                 <Grid x:Name="MonthlyBarsGrid"
                       MinHeight="184" />
               </StackPanel>
             </Border>
           </StackPanel>
-        </Border>
-      </StackPanel>
-    </ScrollViewer>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Sessions">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+            <Border Style="{StaticResource SectionCardStyle}">
+              <StackPanel>
+                <TextBlock Text="Sessions"
+                           Style="{StaticResource SectionTitleStyle}"
+                           FontSize="18" />
+                <TextBlock Text="Focus minutes / pomodoros by hour of day"
+                           Style="{StaticResource MutedTextStyle}"
+                           FontSize="17"
+                           Margin="0,0,0,14" />
+                <StackPanel Margin="0,0,0,14">
+                  <WrapPanel Margin="0,0,0,8">
+                    <TextBlock Text="Unit:"
+                               Style="{StaticResource MetricLabelStyle}"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center" />
+                    <Button x:Name="RhythmMinutesButton"
+                            Content="Minutes"
+                            Style="{StaticResource RhythmLinkButtonStyle}"
+                            Click="RhythmMinutesButton_Click" />
+                    <Button x:Name="RhythmPomodorosButton"
+                            Content="Pomodoros"
+                            Style="{StaticResource RhythmLinkButtonStyle}"
+                            Click="RhythmPomodorosButton_Click" />
+                  </WrapPanel>
+
+                  <WrapPanel Margin="0,0,0,8">
+                    <TextBlock Text="Mode:"
+                               Style="{StaticResource MetricLabelStyle}"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center" />
+                    <Button x:Name="RhythmAverageButton"
+                            Content="Average"
+                            Style="{StaticResource RhythmLinkButtonStyle}"
+                            Click="RhythmAverageButton_Click" />
+                    <Button x:Name="RhythmTotalButton"
+                            Content="Total"
+                            Style="{StaticResource RhythmLinkButtonStyle}"
+                            Click="RhythmTotalButton_Click" />
+                  </WrapPanel>
+
+                  <WrapPanel>
+                    <TextBlock Text="Period:"
+                               Style="{StaticResource MetricLabelStyle}"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center" />
+                    <Button x:Name="RhythmAllTimeButton"
+                            Content="All time"
+                            Style="{StaticResource RhythmLinkButtonStyle}"
+                            Click="RhythmAllTimeButton_Click" />
+                    <Button x:Name="RhythmMonthButton"
+                            Content="Month"
+                            Style="{StaticResource RhythmLinkButtonStyle}"
+                            Click="RhythmMonthButton_Click" />
+                    <Button x:Name="RhythmWeekButton"
+                            Content="Week"
+                            Style="{StaticResource RhythmLinkButtonStyle}"
+                            Click="RhythmWeekButton_Click" />
+                    <Button x:Name="RhythmDayButton"
+                            Content="Day"
+                            Style="{StaticResource RhythmLinkButtonStyle}"
+                            Click="RhythmDayButton_Click" />
+                  </WrapPanel>
+                </StackPanel>
+                <Border Background="#F8FAFC"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16">
+                  <Grid x:Name="HourlyRhythmGrid"
+                        MinHeight="210" />
+                </Border>
+              </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource SectionCardStyle}">
+              <StackPanel>
+                <Grid Margin="0,0,0,12">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="Today"
+                             Style="{StaticResource SectionTitleStyle}"
+                             FontSize="18"
+                             Margin="0" />
+                  <WrapPanel x:Name="TodayPomodoroIconsPanel"
+                             Grid.Column="1"
+                             Margin="10,1,0,0"
+                             VerticalAlignment="Center" />
+                </Grid>
+                <StackPanel x:Name="TodayFocusSessionsPanel" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
   </DockPanel>
 </Window>

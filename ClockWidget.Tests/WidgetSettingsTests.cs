@@ -27,7 +27,17 @@ public sealed class WidgetSettingsTests
             [
                 new PomodoroStatsEntry { Date = "2026-06-12", Count = -1, FocusMinutes = 25 },
                 new PomodoroStatsEntry { Date = "not-a-date", Count = 1, FocusMinutes = 25 }
-            ]
+            ],
+            PomodoroFocusSessions =
+            [
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-12T10:30:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "not-a-date", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-12T11:30:00", FocusMinutes = -1 }
+            ],
+            PomodoroMonthlyMetric = (PomodoroRhythmMetric)999,
+            PomodoroRhythmMetric = (PomodoroRhythmMetric)999,
+            PomodoroRhythmMode = (PomodoroRhythmMode)999,
+            PomodoroRhythmRange = (PomodoroRhythmRange)999
         };
 
         settings.Normalize();
@@ -52,6 +62,13 @@ public sealed class WidgetSettingsTests
         Assert.Equal("2026-06-12", settings.PomodoroStatsHistory[0].Date);
         Assert.Equal(0, settings.PomodoroStatsHistory[0].Count);
         Assert.Equal(25, settings.PomodoroStatsHistory[0].FocusMinutes);
+        var session = Assert.Single(settings.PomodoroFocusSessions);
+        Assert.Equal("2026-06-12T10:30:00", session.CompletedAt);
+        Assert.Equal(25, session.FocusMinutes);
+        Assert.Equal(PomodoroRhythmMetric.Minutes, settings.PomodoroMonthlyMetric);
+        Assert.Equal(PomodoroRhythmMetric.Minutes, settings.PomodoroRhythmMetric);
+        Assert.Equal(PomodoroRhythmMode.Total, settings.PomodoroRhythmMode);
+        Assert.Equal(PomodoroRhythmRange.AllTime, settings.PomodoroRhythmRange);
     }
 
     [Fact]
@@ -187,7 +204,15 @@ public sealed class WidgetSettingsTests
             PomodoroStatsHistory =
             [
                 new PomodoroStatsEntry { Date = "2026-06-11", Count = 2, FocusMinutes = 50 }
-            ]
+            ],
+            PomodoroFocusSessions =
+            [
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-12T10:30:00", FocusMinutes = 25 }
+            ],
+            PomodoroMonthlyMetric = PomodoroRhythmMetric.Pomodoros,
+            PomodoroRhythmMetric = PomodoroRhythmMetric.Pomodoros,
+            PomodoroRhythmMode = PomodoroRhythmMode.Average,
+            PomodoroRhythmRange = PomodoroRhythmRange.Today
         };
 
         var clone = settings.Clone();
@@ -201,6 +226,13 @@ public sealed class WidgetSettingsTests
         Assert.Single(clone.PomodoroStatsHistory);
         Assert.Equal("2026-06-11", clone.PomodoroStatsHistory[0].Date);
         Assert.NotSame(settings.PomodoroStatsHistory[0], clone.PomodoroStatsHistory[0]);
+        Assert.Single(clone.PomodoroFocusSessions);
+        Assert.Equal("2026-06-12T10:30:00", clone.PomodoroFocusSessions[0].CompletedAt);
+        Assert.NotSame(settings.PomodoroFocusSessions[0], clone.PomodoroFocusSessions[0]);
+        Assert.Equal(PomodoroRhythmMetric.Pomodoros, clone.PomodoroMonthlyMetric);
+        Assert.Equal(PomodoroRhythmMetric.Pomodoros, clone.PomodoroRhythmMetric);
+        Assert.Equal(PomodoroRhythmMode.Average, clone.PomodoroRhythmMode);
+        Assert.Equal(PomodoroRhythmRange.Today, clone.PomodoroRhythmRange);
     }
 
     [Fact]
@@ -267,6 +299,11 @@ public sealed class WidgetSettingsTests
             [
                 new PomodoroStatsEntry { Date = "2026-06-12", Count = 3, FocusMinutes = 75 },
                 new PomodoroStatsEntry { Date = "2026-06-13", Count = 1, FocusMinutes = 25 }
+            ],
+            PomodoroFocusSessions =
+            [
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-12T10:30:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-13T10:30:00", FocusMinutes = 25 }
             ]
         };
 
@@ -276,6 +313,7 @@ public sealed class WidgetSettingsTests
         Assert.Equal(0, settings.PomodoroDailyCount);
         Assert.Equal(0, settings.PomodoroDailyFocusMinutes);
         Assert.Empty(settings.PomodoroStatsHistory);
+        Assert.Empty(settings.PomodoroFocusSessions);
     }
 
     [Fact]
@@ -290,6 +328,11 @@ public sealed class WidgetSettingsTests
             [
                 new PomodoroStatsEntry { Date = "2026-06-13", Count = 1, FocusMinutes = 25 },
                 new PomodoroStatsEntry { Date = "2026-06-14", Count = 3, FocusMinutes = 75 }
+            ],
+            PomodoroFocusSessions =
+            [
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-13T10:30:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-14T10:30:00", FocusMinutes = 25 }
             ]
         };
 
@@ -300,6 +343,8 @@ public sealed class WidgetSettingsTests
         Assert.Equal(0, settings.PomodoroDailyFocusMinutes);
         var entry = Assert.Single(settings.PomodoroStatsHistory);
         Assert.Equal("2026-06-13", entry.Date);
+        var session = Assert.Single(settings.PomodoroFocusSessions);
+        Assert.Equal("2026-06-13T10:30:00", session.CompletedAt);
     }
 
     [Fact]
@@ -315,6 +360,12 @@ public sealed class WidgetSettingsTests
                 new PomodoroStatsEntry { Date = "2026-06-14", Count = 1, FocusMinutes = 25 },
                 new PomodoroStatsEntry { Date = "2026-06-15", Count = 2, FocusMinutes = 50 },
                 new PomodoroStatsEntry { Date = "2026-06-17", Count = 4, FocusMinutes = 100 }
+            ],
+            PomodoroFocusSessions =
+            [
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-14T10:30:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-15T10:30:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-17T10:30:00", FocusMinutes = 25 }
             ]
         };
 
@@ -325,6 +376,52 @@ public sealed class WidgetSettingsTests
         Assert.Equal(0, settings.PomodoroDailyFocusMinutes);
         var entry = Assert.Single(settings.PomodoroStatsHistory);
         Assert.Equal("2026-06-14", entry.Date);
+        var session = Assert.Single(settings.PomodoroFocusSessions);
+        Assert.Equal("2026-06-14T10:30:00", session.CompletedAt);
+    }
+
+    [Fact]
+    public void AddPomodoroFocusSession_StoresCompletedTimeAndFocusMinutes()
+    {
+        var settings = new WidgetSettings();
+
+        settings.AddPomodoroFocusSession(new DateTime(2026, 6, 14, 10, 30, 45), 25);
+
+        var session = Assert.Single(settings.PomodoroFocusSessions);
+        Assert.Equal("2026-06-14T10:30:45", session.CompletedAt);
+        Assert.Equal(25, session.FocusMinutes);
+    }
+
+    [Fact]
+    public void RemovePomodoroFocusSession_RemovesSessionAndDecrementsStats()
+    {
+        var settings = new WidgetSettings
+        {
+            PomodoroDailyStatsDate = "2026-06-14",
+            PomodoroDailyCount = 2,
+            PomodoroDailyFocusMinutes = 50,
+            PomodoroStatsHistory =
+            [
+                new PomodoroStatsEntry { Date = "2026-06-14", Count = 2, FocusMinutes = 50 }
+            ],
+            PomodoroFocusSessions =
+            [
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-14T10:30:00", FocusMinutes = 25 },
+                new PomodoroFocusSessionEntry { CompletedAt = "2026-06-14T11:30:00", FocusMinutes = 25 }
+            ]
+        };
+
+        var removed = settings.RemovePomodoroFocusSession(new DateTime(2026, 6, 14, 10, 30, 0), 25);
+
+        Assert.True(removed);
+        Assert.Equal(1, settings.PomodoroDailyCount);
+        Assert.Equal(25, settings.PomodoroDailyFocusMinutes);
+        var history = Assert.Single(settings.PomodoroStatsHistory);
+        Assert.Equal("2026-06-14", history.Date);
+        Assert.Equal(1, history.Count);
+        Assert.Equal(25, history.FocusMinutes);
+        var session = Assert.Single(settings.PomodoroFocusSessions);
+        Assert.Equal("2026-06-14T11:30:00", session.CompletedAt);
     }
 
     [Fact]
